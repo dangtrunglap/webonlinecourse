@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Online Course Platform
 
 A full-stack application built with ASP.NET Core 8 Web API and React + Vite (TypeScript).
@@ -61,3 +62,6 @@ The application seeds users on the first run. E.g:
 - Admin: `admin@example.com` (Password: `Password123!`)
 - Instructor: `instructor@example.com` (Password: `Password123!`)
 - Student: `student@example.com` (Password: `Password123!`)
+=======
+# webonlinecourse
+>>>>>>> e33ca97d39a80b2c60fabed9b647b0f1929979b2
