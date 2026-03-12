@@ -7,7 +7,6 @@ export const Register: React.FC = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('Student');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -20,11 +19,15 @@ export const Register: React.FC = () => {
     setError('');
 
     try {
-      const { data } = await api.post('/auth/register', { name, email, password, role });
+      const { data } = await api.post('/auth/register', { name, email, password, role: 'Student' });
       login({ name: data.name, email: data.email, role: data.role }, data.token);
       navigate('/');
     } catch (err: any) {
-      setError(err.response?.data?.message || err.response?.data?.Message || 'Đăng ký thất bại');
+      if (!err.response) {
+        setError('Không kết nối được API backend. Hãy kiểm tra backend local có đang chạy không.');
+      } else {
+        setError(err.response?.data?.message || err.response?.data?.Message || err.message || 'Đăng ký thất bại');
+      }
     } finally {
       setLoading(false);
     }
@@ -56,10 +59,7 @@ export const Register: React.FC = () => {
             </div>
             <div className="field">
               <label>Vai trò</label>
-              <select value={role} onChange={(e) => setRole(e.target.value)}>
-                <option value="Student">Học viên</option>
-                <option value="Instructor">Giảng viên</option>
-              </select>
+              <input type="text" value="Học viên" disabled />
             </div>
             <button type="submit" className="btn btn-primary" disabled={loading}>
               {loading ? 'Đang tạo tài khoản...' : 'Đăng ký'}
