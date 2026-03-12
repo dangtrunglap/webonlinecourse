@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, BookMarked, GraduationCap, Search, ShieldCheck, Users } from 'lucide-react';
 import api from '../services/api';
 import { getMediaUrl } from '../utils/media';
-import heroBackground from '../../asset/Background-image.png';
 
 interface Course {
   id: string;
@@ -67,12 +66,7 @@ export const CourseList: React.FC = () => {
 
   return (
     <div className="container reveal">
-      <section
-        className="hero hero-cover"
-        style={{
-          backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.9)), url(${heroBackground})`,
-        }}
-      >
+      <section className="hero">
         <h1 className="hero-title">Góc Học Tập Xây Dựng Bách Khoa</h1>
         <p className="hero-subtitle">
           Nền tảng khóa học thực chiến dành cho sinh viên xây dựng: Revit, ETABS, kỹ năng đồ án,
@@ -165,4 +159,3 @@ export const CourseList: React.FC = () => {
     </div>
   );
 };
-
