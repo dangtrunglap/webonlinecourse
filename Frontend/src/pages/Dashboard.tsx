@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import { Plus, Trash, Upload } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
@@ -7,6 +7,7 @@ interface Course {
   id: string;
   title: string;
   price: number;
+  instructorName?: string;
 }
 
 export const Dashboard: React.FC = () => {
@@ -25,13 +26,18 @@ export const Dashboard: React.FC = () => {
   const fetchMyCourses = async () => {
     try {
       const { data } = await api.get('/courses?pageSize=50');
-      setCourses(data.items);
+      setCourses(data.items ?? []);
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
+
+  const filteredCourses = useMemo(() => {
+    if (user?.role === 'Admin') return courses;
+    return courses.filter((course) => !course.instructorName || course.instructorName === user?.name);
+  }, [courses, user?.name, user?.role]);
 
   const handleCreateCourse = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,8 +71,9 @@ export const Dashboard: React.FC = () => {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       alert('Tải ảnh đại diện thành công.');
-    } catch {
-      alert('Tải ảnh đại diện thất bại');
+    } catch (err: any) {
+      const message = err.response?.data?.message || err.response?.data?.Message || 'Tải ảnh đại diện thất bại';
+      alert(message);
     }
   };
 
@@ -105,11 +112,11 @@ export const Dashboard: React.FC = () => {
           <h2 style={{ fontSize: '1.2rem', marginBottom: '0.9rem' }}>Quản lý khóa học</h2>
           {loading ? (
             <p className="muted">Đang tải danh sách khóa học...</p>
-          ) : courses.length === 0 ? (
+          ) : filteredCourses.length === 0 ? (
             <p className="muted">Chưa có khóa học nào.</p>
           ) : (
             <div className="form-grid">
-              {courses.map((course) => (
+              {filteredCourses.map((course) => (
                 <article key={course.id} className="card" style={{ padding: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.8rem' }}>
                   <div>
                     <h3 style={{ fontSize: '1rem' }}>{course.title}</h3>

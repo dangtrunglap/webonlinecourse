@@ -1,131 +1,103 @@
-using Microsoft.EntityFrameworkCore;
-using OnlineCoursePlatform.API.Application.DTOs.Course;
-using OnlineCoursePlatform.API.Core.Entities;
-using OnlineCoursePlatform.API.Infrastructure.Data;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using OnlineCoursePlatform.API.Application.DTOs.Course;
+using System.Text.Json;
 
-namespace OnlineCoursePlatform.API.Application.Services
+namespace OnlineCoursePlatform.API.Application.Services;
+
+public interface ICourseService
 {
-    public interface ICourseService
+    Task<(IEnumerable<CourseDto> Courses, int TotalCount)> GetCoursesAsync(string? search, int pageNumber, int pageSize);
+    Task<CourseDto?> GetCourseByIdAsync(string id);
+    Task<CourseDto> CreateCourseAsync(CreateCourseDto dto, string instructorId, string instructorName);
+    Task<bool> DeleteCourseAsync(string id, string currentUserId, string role);
+    Task<string?> UpdateThumbnailAsync(string id, string thumbnailUrl, string currentUserId, string role);
+}
+
+public class CourseService : ICourseService
+{
+    private readonly IPocketBaseClient _pocketBase;
+
+    public CourseService(IPocketBaseClient pocketBase)
     {
-        Task<(IEnumerable<CourseDto> Courses, int TotalCount)> GetCoursesAsync(string? search, int pageNumber, int pageSize);
-        Task<CourseDto?> GetCourseByIdAsync(Guid id);
-        Task<CourseDto> CreateCourseAsync(CreateCourseDto dto, Guid instructorId, string instructorName);
-        Task<bool> DeleteCourseAsync(Guid id, Guid currentUserId, string role);
-        Task<string?> UpdateThumbnailAsync(Guid id, string thumbnailUrl, Guid currentUserId, string role);
+        _pocketBase = pocketBase;
     }
 
-    public class CourseService : ICourseService
+    public async Task<(IEnumerable<CourseDto> Courses, int TotalCount)> GetCoursesAsync(string? search, int pageNumber, int pageSize)
     {
-        private readonly AppDbContext _context;
+        await _pocketBase.InitializeAsync();
 
-        public CourseService(AppDbContext context)
+        var (items, total) = await _pocketBase.GetCoursesAsync(search, pageNumber, pageSize);
+        var courses = items.Select(MapCourse).ToList();
+        return (courses, total);
+    }
+
+    public async Task<CourseDto?> GetCourseByIdAsync(string id)
+    {
+        await _pocketBase.InitializeAsync();
+        var item = await _pocketBase.GetCourseByIdAsync(id);
+        return item == null ? null : MapCourse(item);
+    }
+
+    public async Task<CourseDto> CreateCourseAsync(CreateCourseDto dto, string instructorId, string instructorName)
+    {
+        await _pocketBase.InitializeAsync();
+        var item = await _pocketBase.CreateCourseAsync(dto.Title, dto.Description, dto.Price, instructorId, instructorName);
+        return MapCourse(item);
+    }
+
+    public async Task<bool> DeleteCourseAsync(string id, string currentUserId, string role)
+    {
+        await _pocketBase.InitializeAsync();
+        var item = await _pocketBase.GetCourseByIdAsync(id);
+        if (item == null) return false;
+
+        var instructorId = GetString(item, "instructorId");
+        var isAdmin = string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase);
+        if (!isAdmin && !string.Equals(instructorId, currentUserId, StringComparison.Ordinal))
+            return false;
+
+        return await _pocketBase.DeleteCourseAsync(id);
+    }
+
+    public async Task<string?> UpdateThumbnailAsync(string id, string thumbnailUrl, string currentUserId, string role)
+    {
+        await _pocketBase.InitializeAsync();
+        var item = await _pocketBase.GetCourseByIdAsync(id);
+        if (item == null) return null;
+
+        var instructorId = GetString(item, "instructorId");
+        var isAdmin = string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase);
+        if (!isAdmin && !string.Equals(instructorId, currentUserId, StringComparison.Ordinal))
+            return null;
+
+        var updated = await _pocketBase.UpdateCourseThumbnailAsync(id, thumbnailUrl);
+        return updated ? thumbnailUrl : null;
+    }
+
+    private static CourseDto MapCourse(Dictionary<string, JsonElement> item)
+    {
+        return new CourseDto
         {
-            _context = context;
-        }
+            Id = GetString(item, "id"),
+            Title = GetString(item, "title"),
+            Description = GetString(item, "description"),
+            Price = GetDecimal(item, "price"),
+            ThumbnailUrl = GetNullableString(item, "thumbnailUrl"),
+            InstructorId = GetString(item, "instructorId"),
+            InstructorName = GetString(item, "instructorName")
+        };
+    }
 
-        public async Task<(IEnumerable<CourseDto> Courses, int TotalCount)> GetCoursesAsync(string? search, int pageNumber, int pageSize)
-        {
-            var query = _context.Courses.Include(c => c.Instructor).AsQueryable();
+    private static string GetString(Dictionary<string, JsonElement> item, string key)
+        => item.TryGetValue(key, out var el) && el.ValueKind == JsonValueKind.String ? (el.GetString() ?? string.Empty) : string.Empty;
 
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var lowerSearch = search.ToLower();
-                query = query.Where(c => c.Title.ToLower().Contains(lowerSearch) || c.Description.ToLower().Contains(lowerSearch));
-            }
+    private static string? GetNullableString(Dictionary<string, JsonElement> item, string key)
+        => item.TryGetValue(key, out var el) && el.ValueKind == JsonValueKind.String ? el.GetString() : null;
 
-            var totalCount = await query.CountAsync();
-
-            var courses = await query
-                .OrderBy(c => c.Title)
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .Select(c => new CourseDto
-                {
-                    Id = c.Id,
-                    Title = c.Title,
-                    Description = c.Description,
-                    Price = c.Price,
-                    ThumbnailUrl = c.ThumbnailUrl,
-                    InstructorName = c.Instructor!.Name,
-                    InstructorId = c.InstructorId
-                })
-                .ToListAsync();
-
-            return (courses, totalCount);
-        }
-
-        public async Task<CourseDto?> GetCourseByIdAsync(Guid id)
-        {
-            var course = await _context.Courses
-                .Include(c => c.Instructor)
-                .FirstOrDefaultAsync(c => c.Id == id);
-
-            if (course == null) return null;
-
-            return new CourseDto
-            {
-                Id = course.Id,
-                Title = course.Title,
-                Description = course.Description,
-                Price = course.Price,
-                ThumbnailUrl = course.ThumbnailUrl,
-                InstructorName = course.Instructor!.Name,
-                InstructorId = course.InstructorId
-            };
-        }
-
-        public async Task<CourseDto> CreateCourseAsync(CreateCourseDto dto, Guid instructorId, string instructorName)
-        {
-            var course = new Course
-            {
-                Title = dto.Title,
-                Description = dto.Description,
-                Price = dto.Price,
-                InstructorId = instructorId
-            };
-
-            _context.Courses.Add(course);
-            await _context.SaveChangesAsync();
-
-            return new CourseDto
-            {
-                Id = course.Id,
-                Title = course.Title,
-                Description = course.Description,
-                Price = course.Price,
-                ThumbnailUrl = course.ThumbnailUrl,
-                InstructorName = instructorName,
-                InstructorId = course.InstructorId
-            };
-        }
-
-        public async Task<bool> DeleteCourseAsync(Guid id, Guid currentUserId, string role)
-        {
-            var course = await _context.Courses.FindAsync(id);
-            if (course == null) return false;
-
-            if (role != "Admin" && course.InstructorId != currentUserId) return false;
-
-            _context.Courses.Remove(course);
-            await _context.SaveChangesAsync();
-            return true;
-        }
-
-        public async Task<string?> UpdateThumbnailAsync(Guid id, string thumbnailUrl, Guid currentUserId, string role)
-        {
-            var course = await _context.Courses.FindAsync(id);
-            if (course == null) return null;
-
-            if (role != "Admin" && course.InstructorId != currentUserId) return null;
-
-            course.ThumbnailUrl = thumbnailUrl;
-            await _context.SaveChangesAsync();
-
-            return thumbnailUrl;
-        }
+    private static decimal GetDecimal(Dictionary<string, JsonElement> item, string key)
+    {
+        if (!item.TryGetValue(key, out var el)) return 0;
+        if (el.ValueKind == JsonValueKind.Number && el.TryGetDecimal(out var number)) return number;
+        if (el.ValueKind == JsonValueKind.String && decimal.TryParse(el.GetString(), out var parsed)) return parsed;
+        return 0;
     }
 }

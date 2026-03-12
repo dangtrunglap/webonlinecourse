@@ -52,7 +52,7 @@ export const Register: React.FC = () => {
             </div>
             <div className="field">
               <label>Mật khẩu</label>
-              <input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Tối thiểu 6 ký tự" />
+              <input type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Tối thiểu 8 ký tự" />
             </div>
             <div className="field">
               <label>Vai trò</label>

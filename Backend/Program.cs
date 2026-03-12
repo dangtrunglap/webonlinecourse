@@ -1,20 +1,18 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using OnlineCoursePlatform.API.Infrastructure.Data;
 using OnlineCoursePlatform.API.Application.Services;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddControllers();
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.Configure<PocketBaseOptions>(builder.Configuration.GetSection("PocketBase"));
+builder.Services.AddHttpClient<IPocketBaseClient, PocketBaseClient>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICourseService, CourseService>();
+builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 
 var jwtKey = builder.Configuration["Jwt:Key"];
 if (string.IsNullOrEmpty(jwtKey)) throw new InvalidOperationException("JWT key is not configured.");
@@ -43,7 +41,12 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend",
-        policy => policy.WithOrigins("http://localhost:3000", "http://localhost:5173", "http://localhost", "http://36.50.54.248:3000", "http://36.50.54.248")
+        policy => policy.WithOrigins(
+                            "http://localhost:3000",
+                            "http://localhost:5173",
+                            "http://localhost",
+                            "http://36.50.54.248:3000",
+                            "http://36.50.54.248")
                         .AllowAnyHeader()
                         .AllowAnyMethod());
 });
@@ -64,13 +67,16 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
-app.UseStaticFiles(); // For thumbnails
-
+app.UseStaticFiles();
 app.UseCors("AllowFrontend");
-
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
+
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    var pocketBase = scope.ServiceProvider.GetRequiredService<IPocketBaseClient>();
+    await pocketBase.InitializeAsync();
+}
 
 app.Run();

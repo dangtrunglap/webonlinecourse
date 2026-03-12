@@ -1,7 +1,20 @@
-import axios from 'axios';
+﻿import axios from 'axios';
+
+const runtimeBaseUrl = (() => {
+  if (typeof window === 'undefined') {
+    return 'http://localhost:8080/api';
+  }
+
+  const { protocol, hostname } = window.location;
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:5078/api';
+  }
+
+  return `${protocol}//${hostname}:8080/api`;
+})();
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5078/api',
+  baseURL: import.meta.env.VITE_API_URL || runtimeBaseUrl,
 });
 
 api.interceptors.request.use((config) => {

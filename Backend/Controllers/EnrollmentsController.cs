@@ -1,12 +1,7 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using OnlineCoursePlatform.API.Core.Entities;
-using OnlineCoursePlatform.API.Infrastructure.Data;
-using System;
-using System.Linq;
+using OnlineCoursePlatform.API.Application.Services;
 using System.Security.Claims;
-using System.Threading.Tasks;
 
 namespace OnlineCoursePlatform.API.Controllers
 {
@@ -15,63 +10,39 @@ namespace OnlineCoursePlatform.API.Controllers
     [Authorize]
     public class EnrollmentsController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly IEnrollmentService _enrollmentService;
 
-        public EnrollmentsController(AppDbContext context)
+        public EnrollmentsController(IEnrollmentService enrollmentService)
         {
-            _context = context;
+            _enrollmentService = enrollmentService;
         }
 
         [HttpPost("{courseId}/enroll")]
-        public async Task<IActionResult> EnrollInCourse(Guid courseId, [FromBody] MockPaymentDto paymentDto)
+        public async Task<IActionResult> EnrollInCourse(string courseId, [FromBody] MockPaymentDto paymentDto)
         {
-            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!Guid.TryParse(userIdStr, out var userId)) return Unauthorized();
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userName = User.FindFirst("name")?.Value ?? "Unknown";
 
-            // Check if course exists
-            var course = await _context.Courses.FindAsync(courseId);
-            if (course == null) return NotFound("Course not found.");
+            if (string.IsNullOrWhiteSpace(userId)) return Unauthorized();
 
-            // Check if already enrolled
-            var existing = await _context.Enrollments.FirstOrDefaultAsync(e => e.CourseId == courseId && e.UserId == userId);
-            if (existing != null) return BadRequest("Already enrolled in this course.");
-
-            // Mock Payment Logic
-            if (string.IsNullOrWhiteSpace(paymentDto.CardNumber) || paymentDto.CardNumber.Length < 12)
-                return BadRequest("Invalid payment details.");
-
-            var enrollment = new Enrollment
+            var result = await _enrollmentService.EnrollInCourseAsync(userId, userName, courseId, paymentDto.CardNumber);
+            if (!result.Success)
             {
-                UserId = userId,
-                CourseId = courseId,
-                PaymentStatus = "Completed"
-            };
+                if (result.Message == "Course not found.") return NotFound(result.Message);
+                return BadRequest(result.Message);
+            }
 
-            _context.Enrollments.Add(enrollment);
-            await _context.SaveChangesAsync();
-
-            return Ok(new { Message = "Successfully enrolled.", EnrollmentDate = enrollment.EnrollmentDate });
+            return Ok(new { Message = result.Message, EnrollmentDate = result.EnrollmentDate });
         }
 
         [HttpGet("my-courses")]
         public async Task<IActionResult> GetMyCourses()
         {
-            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!Guid.TryParse(userIdStr, out var userId)) return Unauthorized();
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(userId)) return Unauthorized();
 
-            var enrollments = await _context.Enrollments
-                .Include(e => e.Course)
-                .Where(e => e.UserId == userId)
-                .Select(e => new
-                {
-                    e.Course!.Id,
-                    e.Course.Title,
-                    e.Course.ThumbnailUrl,
-                    e.EnrollmentDate
-                })
-                .ToListAsync();
-
-            return Ok(enrollments);
+            var courses = await _enrollmentService.GetMyCoursesAsync(userId);
+            return Ok(courses);
         }
     }
 

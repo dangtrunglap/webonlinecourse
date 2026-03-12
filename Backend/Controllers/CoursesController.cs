@@ -1,12 +1,10 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using OnlineCoursePlatform.API.Application.DTOs.Course;
 using OnlineCoursePlatform.API.Application.Services;
-using System;
 using System.IO;
 using System.Security.Claims;
-using System.Threading.Tasks;
 
 namespace OnlineCoursePlatform.API.Controllers
 {
@@ -31,7 +29,7 @@ namespace OnlineCoursePlatform.API.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetCourse(Guid id)
+        public async Task<IActionResult> GetCourse(string id)
         {
             var course = await _courseService.GetCourseByIdAsync(id);
             if (course == null) return NotFound();
@@ -42,10 +40,10 @@ namespace OnlineCoursePlatform.API.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateCourse(CreateCourseDto dto)
         {
-            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var userName = User.FindFirst("name")?.Value ?? "Unknown";
 
-            if (!Guid.TryParse(userIdStr, out var userId)) return Unauthorized();
+            if (string.IsNullOrWhiteSpace(userId)) return Unauthorized();
 
             var course = await _courseService.CreateCourseAsync(dto, userId, userName);
             return CreatedAtAction(nameof(GetCourse), new { id = course.Id }, course);
@@ -53,12 +51,12 @@ namespace OnlineCoursePlatform.API.Controllers
 
         [Authorize(Policy = "RequireInstructor")]
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteCourse(Guid id)
+        public async Task<IActionResult> DeleteCourse(string id)
         {
-            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
 
-            if (!Guid.TryParse(userIdStr, out var userId) || userRole == null) return Unauthorized();
+            if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(userRole)) return Unauthorized();
 
             var success = await _courseService.DeleteCourseAsync(id, userId, userRole);
             if (!success) return Forbid();
@@ -68,23 +66,22 @@ namespace OnlineCoursePlatform.API.Controllers
 
         [Authorize(Policy = "RequireInstructor")]
         [HttpPost("{id}/thumbnail")]
-        public async Task<IActionResult> UploadThumbnail(Guid id, IFormFile file)
+        public async Task<IActionResult> UploadThumbnail(string id, IFormFile file)
         {
             if (file == null || file.Length == 0) return BadRequest("No file uploaded.");
 
-            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
 
-            if (!Guid.TryParse(userIdStr, out var userId) || userRole == null) return Unauthorized();
+            if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(userRole)) return Unauthorized();
 
-            // Needs static files
             var uploadsFolder = Path.Combine(_env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"), "thumbnails");
             if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
 
             var fileName = $"{id}_{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
             var filePath = Path.Combine(uploadsFolder, fileName);
 
-            using (var stream = new FileStream(filePath, FileMode.Create))
+            await using (var stream = new FileStream(filePath, FileMode.Create))
             {
                 await file.CopyToAsync(stream);
             }

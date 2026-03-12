@@ -21,7 +21,7 @@ namespace OnlineCoursePlatform.API.Controllers
         {
             var result = await _authService.RegisterAsync(dto);
             if (result == null)
-                return BadRequest(new { Message = "Email already in use." });
+                return BadRequest(new { Message = "Registration failed. Email may already exist or password must be at least 8 characters." });
 
             return Ok(result);
         }
@@ -37,3 +37,5 @@ namespace OnlineCoursePlatform.API.Controllers
         }
     }
 }
+
+
