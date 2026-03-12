@@ -1,8 +1,11 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+
 :root {
-  --bg-color: #ffffff;
-  --surface-color: #f8fafc;
+  --bg-color: #0a0a0a;
+  --surface-color: #1e1e1e;
   --surface-hover: #f1f5f9;
-  --text-primary: #1e293b;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
   --text-secondary: #475569;
   --accent-color: #0f4eb3;
   /* Navy Blue from logo */

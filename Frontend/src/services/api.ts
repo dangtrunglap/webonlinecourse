@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:5078/api', // HTTP port from ASP.NET Core dev server
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5078/api',
 });
 
 api.interceptors.request.use((config) => {

@@ -43,7 +43,7 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend",
-        policy => policy.WithOrigins("http://localhost:3000", "http://localhost:5173", "http://localhost")
+        policy => policy.WithOrigins("http://localhost:3000", "http://localhost:5173", "http://localhost", "http://36.50.54.248:3000", "http://36.50.54.248")
                         .AllowAnyHeader()
                         .AllowAnyMethod());
 });
@@ -59,7 +59,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseStaticFiles(); // For thumbnails
 
