@@ -1,4 +1,4 @@
-﻿@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Montserrat:wght@600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Montserrat:wght@600;700;800&display=swap');
 
 :root {
   --primary: #1e3a8a;
@@ -36,7 +36,9 @@ body,
 body {
   font-family: 'Be Vietnam Pro', sans-serif;
   color: var(--foreground);
-  background: var(--background);
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.78), rgba(248, 251, 255, 0.84)),
+    url('../asset/Background-image.png') center / cover fixed no-repeat;
   line-height: 1.55;
 }
 
@@ -71,7 +73,9 @@ select {
 
 .page-shell {
   min-height: 100vh;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 45%, #ffffff 100%);
+  display: flex;
+  flex-direction: column;
+  background: transparent;
 }
 
 .page-main {
@@ -83,7 +87,7 @@ select {
   position: sticky;
   top: 0;
   z-index: 40;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border);
 }
@@ -445,9 +449,10 @@ select {
 
 .footer {
   margin-top: auto;
-  background: #111827;
+  background: rgba(17, 24, 39, 0.92);
   color: #f9fafb;
   padding: 2.75rem 0 1.2rem;
+  backdrop-filter: blur(6px);
 }
 
 .footer-grid {
@@ -496,3 +501,5 @@ select {
     padding-bottom: 0.4rem;
   }
 }
+
+
