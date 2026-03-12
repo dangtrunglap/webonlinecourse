@@ -1,4 +1,4 @@
-﻿import axios from 'axios';
+import axios from 'axios';
 
 const runtimeBaseUrl = (() => {
   if (typeof window === 'undefined') {
@@ -28,7 +28,11 @@ api.interceptors.request.use((config) => {
 });
 
 api.interceptors.response.use((response) => response, (error) => {
-  if (error.response?.status === 401) {
+  const requestUrl = String(error.config?.url || '');
+  const isAuthRequest = requestUrl.includes('/auth/login') || requestUrl.includes('/auth/register');
+  const hasStoredToken = Boolean(localStorage.getItem('token'));
+
+  if (error.response?.status === 401 && hasStoredToken && !isAuthRequest) {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     window.location.href = '/login';
