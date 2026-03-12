@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    ports:
+      - "5000:8080"
+    volumes:
+      - ./backend_data:/app/data
+      - ./backend_wwwroot:/app/wwwroot
+    environment:
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/courses.db
+
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend

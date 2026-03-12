@@ -1,0 +1,1 @@
+Replace this file with the actual logo image. Name it logo.png or logo.jpg and put it in this public folder.
