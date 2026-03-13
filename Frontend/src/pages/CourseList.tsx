@@ -1,8 +1,9 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, BookMarked, GraduationCap, Search, ShieldCheck, Users } from 'lucide-react';
+import { ArrowRight, BookMarked, FileText, GraduationCap, PenSquare, Search, ShieldCheck, Users } from 'lucide-react';
 import api from '../services/api';
 import { getMediaUrl } from '../utils/media';
+import type { BlogPost, ResourceFile } from '../types/content';
 
 interface Course {
   id: string;
@@ -38,6 +39,8 @@ const highlights = [
 
 export const CourseList: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
+  const [latestPosts, setLatestPosts] = useState<BlogPost[]>([]);
+  const [latestResources, setLatestResources] = useState<ResourceFile[]>([]);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -48,9 +51,9 @@ export const CourseList: React.FC = () => {
     const fetchCourses = async () => {
       setLoading(true);
       try {
-        const { data } = await api.get(`/courses?search=${search}&page=${page}&pageSize=${pageSize}`);
-        setCourses(data.items);
-        setTotal(data.totalCount);
+        const { data } = await api.get(`/courses?search=${encodeURIComponent(search)}&page=${page}&pageSize=${pageSize}`);
+        setCourses(data.items ?? []);
+        setTotal(data.totalCount ?? 0);
       } catch (err) {
         console.error('Failed to load courses', err);
       } finally {
@@ -61,6 +64,23 @@ export const CourseList: React.FC = () => {
     const timer = setTimeout(fetchCourses, 350);
     return () => clearTimeout(timer);
   }, [page, search]);
+
+  useEffect(() => {
+    const fetchHighlights = async () => {
+      try {
+        const [postsResponse, resourcesResponse] = await Promise.all([
+          api.get('/blogposts?limit=3'),
+          api.get('/resources?limit=3'),
+        ]);
+        setLatestPosts(postsResponse.data ?? []);
+        setLatestResources(resourcesResponse.data ?? []);
+      } catch (err) {
+        console.error('Failed to load homepage highlights', err);
+      }
+    };
+
+    fetchHighlights();
+  }, []);
 
   const maxPage = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total]);
 
@@ -76,6 +96,9 @@ export const CourseList: React.FC = () => {
           <a href="#course-section" className="btn btn-primary">
             Khám phá khóa học <ArrowRight size={16} />
           </a>
+          <Link to="/blog" className="btn btn-secondary">
+            Xem blog giảng viên
+          </Link>
           <a href="https://www.facebook.com/civil.engineer.bk/" className="btn btn-secondary" target="_blank" rel="noreferrer">
             Liên hệ Facebook
           </a>
@@ -96,6 +119,51 @@ export const CourseList: React.FC = () => {
               </article>
             );
           })}
+        </div>
+      </section>
+
+      <section className="section">
+        <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.2rem' }}>
+          <div>
+            <h2 className="section-title" style={{ textAlign: 'left', marginBottom: '0.35rem' }}>Chia sẻ mới từ giảng viên</h2>
+            <p className="section-subtitle" style={{ textAlign: 'left', marginBottom: 0 }}>Kinh nghiệm đồ án, mẹo học và tài liệu cập nhật ngay trên nền tảng.</p>
+          </div>
+          <div style={{ display: 'flex', gap: '0.7rem', flexWrap: 'wrap' }}>
+            <Link to="/blog" className="btn btn-secondary">Toàn bộ bài viết</Link>
+            <Link to="/resources" className="btn btn-primary">Thư viện tài liệu</Link>
+          </div>
+        </div>
+
+        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
+          <section className="card" style={{ padding: '1.15rem', display: 'grid', gap: '0.9rem' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)', fontWeight: 700 }}>
+              <PenSquare size={18} /> Blog giảng viên
+            </div>
+            {latestPosts.length === 0 ? (
+              <p className="muted">Bài viết mới sẽ xuất hiện tại đây.</p>
+            ) : latestPosts.map((post) => (
+              <Link key={post.id} to={`/blog/${post.id}`} className="card" style={{ padding: '0.9rem', display: 'grid', gap: '0.45rem' }}>
+                <h3 style={{ fontSize: '1rem' }} className="line-clamp-2">{post.title}</h3>
+                <p className="muted line-clamp-2">{post.summary}</p>
+                <span className="muted" style={{ fontSize: '0.9rem' }}>{post.courseTitle || post.instructorName}</span>
+              </Link>
+            ))}
+          </section>
+
+          <section className="card" style={{ padding: '1.15rem', display: 'grid', gap: '0.9rem' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)', fontWeight: 700 }}>
+              <FileText size={18} /> Tài liệu mới
+            </div>
+            {latestResources.length === 0 ? (
+              <p className="muted">Tài liệu mới sẽ xuất hiện tại đây.</p>
+            ) : latestResources.map((resource) => (
+              <article key={resource.id} className="card" style={{ padding: '0.9rem', display: 'grid', gap: '0.45rem' }}>
+                <h3 style={{ fontSize: '1rem' }} className="line-clamp-2">{resource.title}</h3>
+                <p className="muted line-clamp-2">{resource.description}</p>
+                <span className="muted" style={{ fontSize: '0.9rem' }}>{resource.courseTitle || resource.fileName}</span>
+              </article>
+            ))}
+          </section>
         </div>
       </section>
 

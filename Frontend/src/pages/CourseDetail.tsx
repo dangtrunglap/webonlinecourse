@@ -1,9 +1,10 @@
 ﻿import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { CreditCard, User } from 'lucide-react';
+import { useNavigate, useParams, Link } from 'react-router-dom';
+import { CreditCard, FileText, PenSquare, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import { getMediaUrl } from '../utils/media';
+import type { BlogPost, ResourceFile } from '../types/content';
 
 interface Course {
   id: string;
@@ -20,6 +21,8 @@ export const CourseDetail: React.FC = () => {
   const navigate = useNavigate();
 
   const [course, setCourse] = useState<Course | null>(null);
+  const [relatedPosts, setRelatedPosts] = useState<BlogPost[]>([]);
+  const [relatedResources, setRelatedResources] = useState<ResourceFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [enrollLoading, setEnrollLoading] = useState(false);
   const [error, setError] = useState('');
@@ -35,6 +38,13 @@ export const CourseDetail: React.FC = () => {
       try {
         const { data } = await api.get(`/courses/${id}`);
         setCourse(data);
+
+        const [postsResponse, resourcesResponse] = await Promise.all([
+          api.get(`/blogposts?courseId=${id}&limit=3`),
+          api.get(`/resources?courseId=${id}&limit=4`),
+        ]);
+        setRelatedPosts(postsResponse.data ?? []);
+        setRelatedResources(resourcesResponse.data ?? []);
       } catch {
         setError('Không thể tải thông tin khóa học.');
       } finally {
@@ -83,7 +93,7 @@ export const CourseDetail: React.FC = () => {
   const image = getMediaUrl(course.thumbnailUrl);
 
   return (
-    <div className="container reveal">
+    <div className="container reveal" style={{ display: 'grid', gap: '1.5rem' }}>
       {error && <div className="alert alert-error">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
 
@@ -94,24 +104,38 @@ export const CourseDetail: React.FC = () => {
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', marginBottom: '1.2rem' }}>
             <User size={16} /> <span>Giảng viên: {course.instructorName}</span>
           </div>
-          <div className="card" style={{ padding: '1rem', background: '#f8fafc' }}>
+          <div className="card" style={{ padding: '1rem', background: '#f8fafc', marginBottom: '1rem' }}>
             <h3 style={{ marginBottom: '0.6rem' }}>Nội dung khóa học</h3>
-            <p className="muted">{success ? 'Tất cả bài học đã được mở trong mục Khóa học của tôi.' : 'Đăng ký để mở toàn bộ bài học và tài liệu thực hành.'}</p>
+            <p className="muted">{success ? 'Tất cả bài học đã được mở trong mục Khóa học của tôi.' : 'Đăng ký để mở toàn bộ bài học, tài liệu thực hành và bài chia sẻ liên quan.'}</p>
           </div>
+
+          {relatedPosts.length > 0 ? (
+            <section style={{ display: 'grid', gap: '0.8rem', marginTop: '1rem' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700, color: 'var(--primary)' }}>
+                <PenSquare size={17} /> Blog liên quan
+              </div>
+              {relatedPosts.map((post) => (
+                <Link key={post.id} to={`/blog/${post.id}`} className="card" style={{ padding: '0.9rem', display: 'grid', gap: '0.35rem' }}>
+                  <h3 style={{ fontSize: '1rem' }}>{post.title}</h3>
+                  <p className="muted line-clamp-2">{post.summary}</p>
+                </Link>
+              ))}
+            </section>
+          ) : null}
         </article>
 
-        <aside className="card" style={{ padding: '1rem', position: 'sticky', top: '90px' }}>
+        <aside className="card" style={{ padding: '1rem', position: 'sticky', top: '90px', display: 'grid', gap: '1rem' }}>
           <div className="course-image" style={{ borderRadius: '12px', overflow: 'hidden', height: '200px' }}>
             {image ? <img src={image} alt={course.title} /> : null}
           </div>
-          <h2 style={{ fontSize: '2rem', color: 'var(--primary)', margin: '1rem 0 0.8rem' }}>${course.price.toFixed(2)}</h2>
+          <h2 style={{ fontSize: '2rem', color: 'var(--primary)' }}>${course.price.toFixed(2)}</h2>
 
           {!showPayment ? (
             <button type="button" className="btn btn-primary" style={{ width: '100%' }} onClick={handleEnrollClick} disabled={!!success}>
               {success ? 'Đã đăng ký' : 'Đăng ký ngay'}
             </button>
           ) : (
-            <form onSubmit={handlePayment} className="form-grid" style={{ marginTop: '0.8rem' }}>
+            <form onSubmit={handlePayment} className="form-grid" style={{ marginTop: '0.2rem' }}>
               <h3 style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}>
                 <CreditCard size={16} /> Thanh toán an toàn
               </h3>
@@ -134,6 +158,22 @@ export const CourseDetail: React.FC = () => {
               </button>
             </form>
           )}
+
+          <div className="card" style={{ padding: '1rem', background: '#f8fafc', display: 'grid', gap: '0.75rem' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700, color: 'var(--primary)' }}>
+              <FileText size={17} /> Tài liệu khóa học
+            </div>
+            {relatedResources.length === 0 ? (
+              <p className="muted">Tài liệu sẽ được giảng viên cập nhật tại đây.</p>
+            ) : relatedResources.map((resource) => {
+              const fileUrl = getMediaUrl(resource.fileUrl);
+              return (
+                <a key={resource.id} href={fileUrl ?? '#'} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ width: '100%' }}>
+                  {resource.title}
+                </a>
+              );
+            })}
+          </div>
         </aside>
       </div>
     </div>

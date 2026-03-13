@@ -1,6 +1,6 @@
 ﻿import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BookOpen, LayoutDashboard, LogOut, User } from 'lucide-react';
+import { BookOpen, LayoutDashboard, Library, LogOut, Newspaper, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export const Navbar: React.FC = () => {
@@ -22,6 +22,8 @@ export const Navbar: React.FC = () => {
 
         <div className="nav-links">
           <Link to="/" className="nav-link">Khóa học</Link>
+          <Link to="/blog" className="nav-link">Blog</Link>
+          <Link to="/resources" className="nav-link">Tài liệu</Link>
           {isAuthenticated && user?.role === 'Student' && <Link to="/my-courses" className="nav-link">Khóa của tôi</Link>}
           {isAuthenticated && (user?.role === 'Instructor' || user?.role === 'Admin') && (
             <Link to="/admin/courses" className="nav-link">Bảng điều khiển</Link>
@@ -49,7 +51,11 @@ export const Navbar: React.FC = () => {
               </button>
             </>
           )}
-          <BookOpen size={18} color="var(--primary)" />
+          <div style={{ display: 'inline-flex', gap: '0.4rem', color: 'var(--primary)' }}>
+            <Newspaper size={18} />
+            <Library size={18} />
+            <BookOpen size={18} />
+          </div>
         </div>
       </div>
     </nav>

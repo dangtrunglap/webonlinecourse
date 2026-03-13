@@ -13,6 +13,7 @@ builder.Services.AddHttpClient<IPocketBaseClient, PocketBaseClient>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
+builder.Services.AddScoped<ICommunityContentService, CommunityContentService>();
 
 var jwtKey = builder.Configuration["Jwt:Key"];
 if (string.IsNullOrEmpty(jwtKey)) throw new InvalidOperationException("JWT key is not configured.");
@@ -80,3 +81,4 @@ await using (var scope = app.Services.CreateAsyncScope())
 }
 
 app.Run();
+
