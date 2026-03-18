@@ -46,6 +46,30 @@ public class CreateResourceDto
     public string? CourseId { get; set; }
 }
 
+public class ToolReleaseDto
+{
+    public string Id { get; set; } = string.Empty;
+    public string AppName { get; set; } = string.Empty;
+    public string Version { get; set; } = string.Empty;
+    public string ReleaseNotes { get; set; } = string.Empty;
+    public string FileName { get; set; } = string.Empty;
+    public string FileUrl { get; set; } = string.Empty;
+    public string FileExtension { get; set; } = string.Empty;
+    public long FileSize { get; set; }
+    public string UploadedById { get; set; } = string.Empty;
+    public string UploadedByName { get; set; } = string.Empty;
+    public bool IsLatest { get; set; }
+    public DateTime PublishedAt { get; set; }
+}
+
+public class CreateToolReleaseDto
+{
+    public string AppName { get; set; } = string.Empty;
+    public string Version { get; set; } = string.Empty;
+    public string ReleaseNotes { get; set; } = string.Empty;
+    public bool MarkAsLatest { get; set; } = true;
+}
+
 public class StoredFileDetails
 {
     public string FileName { get; set; } = string.Empty;

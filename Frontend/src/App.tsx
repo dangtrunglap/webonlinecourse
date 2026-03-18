@@ -12,6 +12,7 @@ import { MyCourses } from './pages/MyCourses';
 import { BlogList } from './pages/BlogList';
 import { BlogDetail } from './pages/BlogDetail';
 import { ResourceLibrary } from './pages/ResourceLibrary';
+import { ToolLibrary } from './pages/ToolLibrary';
 
 const App: React.FC = () => {
   return (
@@ -26,6 +27,7 @@ const App: React.FC = () => {
             <Route path="blog" element={<BlogList />} />
             <Route path="blog/:id" element={<BlogDetail />} />
             <Route path="resources" element={<ResourceLibrary />} />
+            <Route path="tools" element={<ToolLibrary />} />
             <Route path="my-courses" element={<ProtectedRoute><MyCourses /></ProtectedRoute>} />
             <Route path="admin/courses" element={<ProtectedRoute allowedRoles={['Instructor', 'Admin']}><Dashboard /></ProtectedRoute>} />
           </Route>

@@ -1,6 +1,6 @@
-﻿using System.Text.Json;
-using OnlineCoursePlatform.API.Application.DTOs.Content;
+using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
+using OnlineCoursePlatform.API.Application.DTOs.Content;
 
 namespace OnlineCoursePlatform.API.Application.Services;
 
@@ -13,13 +13,18 @@ public interface ICommunityContentService
 
     Task<IReadOnlyList<ResourceFileDto>> GetResourcesAsync(string? courseId, string? instructorId, int? limit);
     Task<ResourceFileDto> CreateResourceAsync(CreateResourceDto dto, StoredFileDetails file, string currentUserId, string currentUserName, string role);
-    Task<ResourceDeleteResult> DeleteResourceAsync(string id, string currentUserId, string role);
+    Task<StoredContentDeleteResult> DeleteResourceAsync(string id, string currentUserId, string role);
+
+    Task<IReadOnlyList<ToolReleaseDto>> GetToolReleasesAsync(int? limit, string? uploadedById);
+    Task<ToolReleaseDto> CreateToolReleaseAsync(CreateToolReleaseDto dto, StoredFileDetails file, string currentUserId, string currentUserName);
+    Task<StoredContentDeleteResult> DeleteToolReleaseAsync(string id, string currentUserId, string role);
 }
 
-public record ResourceDeleteResult(bool Deleted, string? FileUrl);
+public record StoredContentDeleteResult(bool Deleted, string? FileUrl);
 
 public class CommunityContentService : ICommunityContentService
 {
+    private static readonly string[] AllowedToolExtensions = [".exe", ".rar", ".zip"];
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -31,6 +36,7 @@ public class CommunityContentService : ICommunityContentService
     private readonly IPocketBaseClient _pocketBase;
     private readonly string _blogPostsPath;
     private readonly string _resourceFilesPath;
+    private readonly string _toolReleasesPath;
 
     public CommunityContentService(IPocketBaseClient pocketBase, IWebHostEnvironment environment)
     {
@@ -41,6 +47,7 @@ public class CommunityContentService : ICommunityContentService
 
         _blogPostsPath = Path.Combine(dataRoot, "blog-posts.json");
         _resourceFilesPath = Path.Combine(dataRoot, "resource-files.json");
+        _toolReleasesPath = Path.Combine(dataRoot, "tool-releases.json");
     }
 
     public async Task<IReadOnlyList<BlogPostDto>> GetBlogPostsAsync(string? courseId, string? instructorId, int? limit)
@@ -179,7 +186,7 @@ public class CommunityContentService : ICommunityContentService
         return MapResource(record);
     }
 
-    public async Task<ResourceDeleteResult> DeleteResourceAsync(string id, string currentUserId, string role)
+    public async Task<StoredContentDeleteResult> DeleteResourceAsync(string id, string currentUserId, string role)
     {
         await SyncLock.WaitAsync();
         try
@@ -187,14 +194,125 @@ public class CommunityContentService : ICommunityContentService
             var resources = await LoadAsync<ResourceFileRecord>(_resourceFilesPath);
             var resource = resources.FirstOrDefault(item => string.Equals(item.Id, id, StringComparison.OrdinalIgnoreCase));
             if (resource == null)
-                return new ResourceDeleteResult(false, null);
+                return new StoredContentDeleteResult(false, null);
 
             if (!CanManageContent(resource.InstructorId, currentUserId, role))
-                return new ResourceDeleteResult(false, null);
+                return new StoredContentDeleteResult(false, null);
 
             resources.Remove(resource);
             await SaveAsync(_resourceFilesPath, resources);
-            return new ResourceDeleteResult(true, resource.FileUrl);
+            return new StoredContentDeleteResult(true, resource.FileUrl);
+        }
+        finally
+        {
+            SyncLock.Release();
+        }
+    }
+
+    public async Task<IReadOnlyList<ToolReleaseDto>> GetToolReleasesAsync(int? limit, string? uploadedById)
+    {
+        var releases = await LoadAsync<ToolReleaseRecord>(_toolReleasesPath);
+        var query = releases
+            .Where(release => string.IsNullOrWhiteSpace(uploadedById) || string.Equals(release.UploadedById, uploadedById, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(release => release.IsLatest)
+            .ThenByDescending(release => release.PublishedAt)
+            .AsEnumerable();
+
+        if (limit.HasValue && limit.Value > 0)
+            query = query.Take(limit.Value);
+
+        return query.Select(MapToolRelease).ToList();
+    }
+
+    public async Task<ToolReleaseDto> CreateToolReleaseAsync(CreateToolReleaseDto dto, StoredFileDetails file, string currentUserId, string currentUserName)
+    {
+        if (!AllowedToolExtensions.Contains(file.FileExtension, StringComparer.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Mục Công cụ chỉ hỗ trợ file .exe, .rar hoặc .zip.");
+
+        var appName = dto.AppName.Trim();
+        var version = dto.Version.Trim();
+        var releaseNotes = dto.ReleaseNotes.Trim();
+
+        if (string.IsNullOrWhiteSpace(appName))
+            throw new InvalidOperationException("Vui lòng nhập tên ứng dụng.");
+
+        if (string.IsNullOrWhiteSpace(version))
+            throw new InvalidOperationException("Vui lòng nhập phiên bản.");
+
+        if (string.IsNullOrWhiteSpace(releaseNotes))
+            throw new InvalidOperationException("Vui lòng nhập ghi chú cập nhật.");
+
+        await SyncLock.WaitAsync();
+        try
+        {
+            var releases = await LoadAsync<ToolReleaseRecord>(_toolReleasesPath);
+            var sameAppReleases = releases
+                .Where(release => string.Equals(release.AppName, appName, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            var shouldMarkLatest = dto.MarkAsLatest || sameAppReleases.Count == 0;
+            if (shouldMarkLatest)
+            {
+                foreach (var release in sameAppReleases)
+                {
+                    release.IsLatest = false;
+                }
+            }
+
+            var record = new ToolReleaseRecord
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                AppName = appName,
+                Version = version,
+                ReleaseNotes = releaseNotes,
+                FileName = file.FileName,
+                FileUrl = file.FileUrl,
+                FileExtension = file.FileExtension,
+                FileSize = file.FileSize,
+                UploadedById = currentUserId,
+                UploadedByName = currentUserName,
+                IsLatest = shouldMarkLatest,
+                PublishedAt = DateTime.UtcNow
+            };
+
+            releases.Add(record);
+            await SaveAsync(_toolReleasesPath, releases);
+            return MapToolRelease(record);
+        }
+        finally
+        {
+            SyncLock.Release();
+        }
+    }
+
+    public async Task<StoredContentDeleteResult> DeleteToolReleaseAsync(string id, string currentUserId, string role)
+    {
+        await SyncLock.WaitAsync();
+        try
+        {
+            var releases = await LoadAsync<ToolReleaseRecord>(_toolReleasesPath);
+            var release = releases.FirstOrDefault(item => string.Equals(item.Id, id, StringComparison.OrdinalIgnoreCase));
+            if (release == null)
+                return new StoredContentDeleteResult(false, null);
+
+            if (!CanManageContent(release.UploadedById, currentUserId, role))
+                return new StoredContentDeleteResult(false, null);
+
+            releases.Remove(release);
+
+            if (release.IsLatest)
+            {
+                var nextLatest = releases
+                    .Where(item => string.Equals(item.AppName, release.AppName, StringComparison.OrdinalIgnoreCase))
+                    .OrderByDescending(item => item.PublishedAt)
+                    .FirstOrDefault();
+
+                if (nextLatest != null)
+                    nextLatest.IsLatest = true;
+            }
+
+            await SaveAsync(_toolReleasesPath, releases);
+            return new StoredContentDeleteResult(true, release.FileUrl);
         }
         finally
         {
@@ -281,6 +399,25 @@ public class CommunityContentService : ICommunityContentService
         };
     }
 
+    private static ToolReleaseDto MapToolRelease(ToolReleaseRecord release)
+    {
+        return new ToolReleaseDto
+        {
+            Id = release.Id,
+            AppName = release.AppName,
+            Version = release.Version,
+            ReleaseNotes = release.ReleaseNotes,
+            FileName = release.FileName,
+            FileUrl = release.FileUrl,
+            FileExtension = release.FileExtension,
+            FileSize = release.FileSize,
+            UploadedById = release.UploadedById,
+            UploadedByName = release.UploadedByName,
+            IsLatest = release.IsLatest,
+            PublishedAt = release.PublishedAt
+        };
+    }
+
     private static string GetString(Dictionary<string, JsonElement> item, string key)
         => item.TryGetValue(key, out var element) && element.ValueKind == JsonValueKind.String
             ? element.GetString() ?? string.Empty
@@ -316,6 +453,21 @@ public class CommunityContentService : ICommunityContentService
         public DateTime PublishedAt { get; set; }
     }
 
+    private sealed class ToolReleaseRecord
+    {
+        public string Id { get; set; } = string.Empty;
+        public string AppName { get; set; } = string.Empty;
+        public string Version { get; set; } = string.Empty;
+        public string ReleaseNotes { get; set; } = string.Empty;
+        public string FileName { get; set; } = string.Empty;
+        public string FileUrl { get; set; } = string.Empty;
+        public string FileExtension { get; set; } = string.Empty;
+        public long FileSize { get; set; }
+        public string UploadedById { get; set; } = string.Empty;
+        public string UploadedByName { get; set; } = string.Empty;
+        public bool IsLatest { get; set; }
+        public DateTime PublishedAt { get; set; }
+    }
+
     private sealed record CourseContext(string? CourseId, string? CourseTitle);
 }
-

@@ -25,3 +25,18 @@ export interface ResourceFile {
   courseTitle?: string | null;
   publishedAt: string;
 }
+
+export interface ToolRelease {
+  id: string;
+  appName: string;
+  version: string;
+  releaseNotes: string;
+  fileName: string;
+  fileUrl: string;
+  fileExtension: string;
+  fileSize: number;
+  uploadedById: string;
+  uploadedByName: string;
+  isLatest: boolean;
+  publishedAt: string;
+}

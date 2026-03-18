@@ -20,7 +20,7 @@ export const Register: React.FC = () => {
 
     try {
       const { data } = await api.post('/auth/register', { name, email, password, role: 'Student' });
-      login({ name: data.name, email: data.email, role: data.role }, data.token);
+      login({ id: data.id, name: data.name, email: data.email, role: data.role }, data.token);
       navigate('/');
     } catch (err: any) {
       if (!err.response) {

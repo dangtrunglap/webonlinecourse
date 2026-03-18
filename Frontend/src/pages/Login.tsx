@@ -19,7 +19,7 @@ export const Login: React.FC = () => {
 
     try {
       const { data } = await api.post('/auth/login', { email, password });
-      login({ name: data.name, email: data.email, role: data.role }, data.token);
+      login({ id: data.id, name: data.name, email: data.email, role: data.role }, data.token);
       navigate('/');
     } catch (err: any) {
       setError(err.response?.data?.message || err.response?.data?.Message || 'Đăng nhập thất bại');

@@ -1,9 +1,9 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FileText, Plus, Trash, Upload, PenSquare } from 'lucide-react';
+import { FileArchive, FileText, PenSquare, Plus, ShieldCheck, Trash, Upload } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
-import type { BlogPost, ResourceFile } from '../types/content';
+import type { BlogPost, ResourceFile, ToolRelease } from '../types/content';
 import { getMediaUrl } from '../utils/media';
 
 interface Course {
@@ -14,11 +14,28 @@ interface Course {
   thumbnailUrl?: string | null;
 }
 
+const allowedToolExtensions = ['.exe', '.rar', '.zip'];
+
+const formatBytes = (value: number) => {
+  if (!value) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  const index = Math.min(Math.floor(Math.log(value) / Math.log(1024)), units.length - 1);
+  const size = value / Math.pow(1024, index);
+  return `${size.toFixed(size >= 10 || index === 0 ? 0 : 1)} ${units[index]}`;
+};
+
+const formatReleaseDate = (value: string) => new Date(value).toLocaleDateString('vi-VN', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+});
+
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
   const [blogs, setBlogs] = useState<BlogPost[]>([]);
   const [resources, setResources] = useState<ResourceFile[]>([]);
+  const [toolReleases, setToolReleases] = useState<ToolRelease[]>([]);
   const [loading, setLoading] = useState(true);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -39,21 +56,38 @@ export const Dashboard: React.FC = () => {
   const [resourceFile, setResourceFile] = useState<File | null>(null);
   const [resourceInputKey, setResourceInputKey] = useState(0);
 
+  const [toolAppName, setToolAppName] = useState('');
+  const [toolVersion, setToolVersion] = useState('');
+  const [toolReleaseNotes, setToolReleaseNotes] = useState('');
+  const [toolFile, setToolFile] = useState<File | null>(null);
+  const [toolMarkAsLatest, setToolMarkAsLatest] = useState(true);
+  const [toolInputKey, setToolInputKey] = useState(0);
+  const [toolFileError, setToolFileError] = useState('');
+
+  const canManageTools = user?.role === 'Instructor' || user?.role === 'Admin';
+
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [user?.id, user?.role]);
 
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const [coursesResponse, blogsResponse, resourcesResponse] = await Promise.all([
+      const toolsUrl = user?.role === 'Instructor' && user.id
+        ? `/tools?uploadedById=${encodeURIComponent(user.id)}`
+        : '/tools';
+
+      const [coursesResponse, blogsResponse, resourcesResponse, toolsResponse] = await Promise.all([
         api.get('/courses?pageSize=50'),
         api.get('/blogposts'),
         api.get('/resources'),
+        api.get(toolsUrl),
       ]);
+
       setCourses(coursesResponse.data.items ?? []);
       setBlogs(blogsResponse.data ?? []);
       setResources(resourcesResponse.data ?? []);
+      setToolReleases(toolsResponse.data ?? []);
     } catch (err) {
       console.error(err);
       setErrorMessage('Không thể tải dữ liệu quản trị.');
@@ -77,9 +111,16 @@ export const Dashboard: React.FC = () => {
     return resources.filter((resource) => resource.instructorName === user?.name);
   }, [resources, user?.name, user?.role]);
 
+  const filteredToolReleases = useMemo(() => {
+    if (user?.role === 'Admin') return toolReleases;
+    if (user?.id) return toolReleases.filter((release) => release.uploadedById === user.id);
+    return toolReleases.filter((release) => release.uploadedByName === user?.name);
+  }, [toolReleases, user?.id, user?.name, user?.role]);
+
   const resetMessages = () => {
     setSuccessMessage('');
     setErrorMessage('');
+    setToolFileError('');
   };
 
   const handleCreateCourse = async (e: React.FormEvent) => {
@@ -155,6 +196,48 @@ export const Dashboard: React.FC = () => {
     }
   };
 
+  const handleCreateToolRelease = async (e: React.FormEvent) => {
+    e.preventDefault();
+    resetMessages();
+
+    if (!toolFile) {
+      setToolFileError('Vui lòng chọn file .exe, .rar hoặc .zip từ máy local.');
+      setErrorMessage('Vui lòng chọn file .exe, .rar hoặc .zip từ máy local.');
+      return;
+    }
+
+    const lowerFileName = toolFile.name.toLowerCase();
+    const isAllowedFile = allowedToolExtensions.some((extension) => lowerFileName.endsWith(extension));
+    if (!isAllowedFile) {
+      setToolFileError(`File "${toolFile.name}" không hợp lệ. Hãy chọn .exe, .rar hoặc .zip.`);
+      setErrorMessage('Mục Công cụ chỉ hỗ trợ file .exe, .rar hoặc .zip.');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('appName', toolAppName);
+    formData.append('version', toolVersion);
+    formData.append('releaseNotes', toolReleaseNotes);
+    formData.append('markAsLatest', String(toolMarkAsLatest));
+    formData.append('file', toolFile);
+
+    try {
+      await api.post('/tools', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setToolAppName('');
+      setToolVersion('');
+      setToolReleaseNotes('');
+      setToolFile(null);
+      setToolMarkAsLatest(true);
+      setToolInputKey((value) => value + 1);
+      setSuccessMessage('Đã tải app lên thành công.');
+      fetchDashboardData();
+    } catch (err: any) {
+      setErrorMessage(err.response?.data?.message || err.response?.data?.Message || 'Tải app thất bại.');
+    }
+  };
+
   const handleDeleteCourse = async (id: string) => {
     if (!window.confirm('Bạn có chắc muốn xóa khóa học này?')) return;
     resetMessages();
@@ -194,6 +277,19 @@ export const Dashboard: React.FC = () => {
     }
   };
 
+  const handleDeleteToolRelease = async (id: string) => {
+    if (!window.confirm('Bạn có chắc muốn xóa bản phát hành này?')) return;
+    resetMessages();
+
+    try {
+      await api.delete(`/tools/${id}`);
+      setSuccessMessage('Đã xóa bản phát hành công cụ.');
+      fetchDashboardData();
+    } catch {
+      setErrorMessage('Xóa bản phát hành thất bại.');
+    }
+  };
+
   const handleThumbnailUpload = async (id: string, file: File) => {
     const formData = new FormData();
     formData.append('file', file);
@@ -221,7 +317,7 @@ export const Dashboard: React.FC = () => {
           {user?.role === 'Admin' ? 'Bảng điều khiển quản trị' : 'Bảng điều khiển giảng viên'}
         </h1>
         <p className="hero-subtitle">
-          Quản lý khóa học, viết blog chuyên môn và chia sẻ tài liệu/file trực tiếp cho học viên ngay trong một nơi.
+          Quản lý khóa học, viết blog chuyên môn, chia sẻ tài liệu và phát hành app hoặc gói cài đặt cho người dùng ngay trong một nơi.
         </p>
       </section>
 
@@ -310,6 +406,66 @@ export const Dashboard: React.FC = () => {
             <button type="submit" className="btn btn-primary">Tải lên tài liệu</button>
           </form>
         </section>
+
+        {canManageTools ? (
+          <section className="card" style={{ padding: '1rem' }}>
+            <h2 style={{ fontSize: '1.2rem', marginBottom: '0.9rem', display: 'inline-flex', gap: '0.4rem', alignItems: 'center' }}>
+              <FileArchive size={18} /> Phát hành công cụ
+            </h2>
+            <form onSubmit={handleCreateToolRelease} className="form-grid">
+              <div className="field">
+                <label>Tên ứng dụng</label>
+                <input type="text" value={toolAppName} onChange={(e) => setToolAppName(e.target.value)} placeholder="Ví dụ: GHTXDBK Desktop" required />
+              </div>
+              <div className="field">
+                <label>Phiên bản</label>
+                <input type="text" value={toolVersion} onChange={(e) => setToolVersion(e.target.value)} placeholder="Ví dụ: 1.2.0" required />
+              </div>
+              <div className="field">
+                <label>Ghi chú cập nhật</label>
+                <textarea rows={5} value={toolReleaseNotes} onChange={(e) => setToolReleaseNotes(e.target.value)} placeholder="Mô tả điểm mới, sửa lỗi, hướng dẫn cài đặt..." required />
+              </div>
+              <div className="field">
+                <label>Chọn app từ máy local</label>
+                <input
+                  key={toolInputKey}
+                  type="file"
+                  accept=".exe,.rar,.zip"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] ?? null;
+                    setToolFile(file);
+                    if (!file) {
+                      setToolFileError('');
+                      return;
+                    }
+
+                    const lowerFileName = file.name.toLowerCase();
+                    const isAllowedFile = allowedToolExtensions.some((extension) => lowerFileName.endsWith(extension));
+                    if (!isAllowedFile) {
+                      setToolFileError(`Bạn đang chọn "${file.name}". Hãy chọn file .exe, .rar hoặc .zip.`);
+                    } else {
+                      setToolFileError('');
+                    }
+                  }}
+                  required
+                />
+                <p className="muted" style={{ fontSize: '0.88rem' }}>
+                  Hiện tại nhận file cài đặt hoặc gói nén định dạng `.exe`, `.rar`, `.zip`.
+                </p>
+                {toolFileError ? (
+                  <div className="alert alert-error" style={{ marginBottom: 0 }}>
+                    {toolFileError}
+                  </div>
+                ) : null}
+              </div>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.55rem' }}>
+                <input type="checkbox" checked={toolMarkAsLatest} onChange={(e) => setToolMarkAsLatest(e.target.checked)} />
+                <ShieldCheck size={16} /> Đặt làm bản mới nhất
+              </label>
+              <button type="submit" className="btn btn-primary">Tải app lên</button>
+            </form>
+          </section>
+        ) : null}
       </div>
 
       <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', alignItems: 'start' }}>
@@ -412,6 +568,51 @@ export const Dashboard: React.FC = () => {
             </div>
           )}
         </section>
+
+        {canManageTools ? (
+          <section className="card" style={{ padding: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.8rem', alignItems: 'center', marginBottom: '0.9rem', flexWrap: 'wrap' }}>
+              <h2 style={{ fontSize: '1.2rem' }}>
+                {user?.role === 'Admin' ? 'Bản phát hành công cụ' : 'App bạn đã tải lên'}
+              </h2>
+              <Link to="/tools" className="btn btn-secondary">Xem trang công khai</Link>
+            </div>
+
+            {loading ? (
+              <p className="muted">Đang tải bản phát hành...</p>
+            ) : filteredToolReleases.length === 0 ? (
+              <p className="muted">Chưa có bản phát hành nào.</p>
+            ) : (
+              <div className="form-grid">
+                {filteredToolReleases.map((release) => (
+                  <article key={release.id} className="card" style={{ padding: '0.9rem', display: 'grid', gap: '0.6rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.8rem', alignItems: 'start' }}>
+                      <div>
+                        <h3 style={{ fontSize: '1rem' }}>{release.appName}</h3>
+                        <p className="muted">Version {release.version}</p>
+                      </div>
+                      {release.isLatest ? <span className="tool-badge">Latest</span> : null}
+                    </div>
+
+                    <div className="muted" style={{ display: 'grid', gap: '0.25rem', fontSize: '0.9rem' }}>
+                      <span>{release.fileName}</span>
+                      <span>{formatBytes(release.fileSize)} • {formatReleaseDate(release.publishedAt)}</span>
+                    </div>
+
+                    <div className="release-notes">{release.releaseNotes}</div>
+
+                    <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
+                      <a href={getMediaUrl(release.fileUrl) ?? '#'} target="_blank" rel="noreferrer" className="btn btn-secondary">Tải file</a>
+                      <button type="button" className="btn btn-secondary" style={{ color: 'var(--danger)' }} onClick={() => handleDeleteToolRelease(release.id)}>
+                        <Trash size={16} /> Xóa
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        ) : null}
       </div>
     </div>
   );
