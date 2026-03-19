@@ -5,12 +5,12 @@ const runtimeBaseUrl = (() => {
     return 'http://localhost:8080/api';
   }
 
-  const { protocol, hostname } = window.location;
+  const { origin, hostname } = window.location;
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
     return 'http://localhost:5078/api';
   }
 
-  return `${protocol}//${hostname}:8080/api`;
+  return `${origin}/api`;
 })();
 
 const api = axios.create({

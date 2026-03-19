@@ -59,7 +59,11 @@ builder.Services.AddCors(options =>
                             "http://localhost:5173",
                             "http://localhost",
                             "http://36.50.54.248:3000",
-                            "http://36.50.54.248")
+                            "http://36.50.54.248",
+                            "http://ghtxdbk.com",
+                            "https://ghtxdbk.com",
+                            "http://www.ghtxdbk.com",
+                            "https://www.ghtxdbk.com")
                         .AllowAnyHeader()
                         .AllowAnyMethod());
 });
