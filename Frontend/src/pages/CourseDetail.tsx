@@ -100,7 +100,7 @@ export const CourseDetail: React.FC = () => {
       <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', alignItems: 'start' }}>
         <article className="card" style={{ padding: '1.4rem' }}>
           <h1 style={{ fontSize: '2rem', marginBottom: '0.85rem' }}>{course.title}</h1>
-          <p className="muted" style={{ marginBottom: '1rem' }}>{course.description}</p>
+          <p className="muted course-description" style={{ marginBottom: '1rem' }}>{course.description}</p>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', marginBottom: '1.2rem' }}>
             <User size={16} /> <span>Giảng viên: {course.instructorName}</span>
           </div>
