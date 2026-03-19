@@ -4,6 +4,7 @@ import { FileArchive, FileText, PenSquare, Plus, ShieldCheck, Trash, Upload } fr
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import type { BlogPost, ResourceFile, ToolRelease } from '../types/content';
+import { formatVnd } from '../utils/currency';
 import { getMediaUrl } from '../utils/media';
 
 interface Course {
@@ -336,8 +337,8 @@ export const Dashboard: React.FC = () => {
               <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} required />
             </div>
             <div className="field">
-              <label>Giá</label>
-              <input type="number" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} required />
+              <label>Giá (VND)</label>
+              <input type="number" step="1000" min="0" value={price} onChange={(e) => setPrice(e.target.value)} required />
             </div>
             <button type="submit" className="btn btn-primary">Tạo khóa học</button>
           </form>
@@ -484,7 +485,7 @@ export const Dashboard: React.FC = () => {
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.8rem' }}>
                       <div>
                         <h3 style={{ fontSize: '1rem' }}>{course.title}</h3>
-                        <p className="muted">${course.price.toFixed(2)}</p>
+                        <p className="muted">{formatVnd(course.price)}</p>
                       </div>
                       {image ? <img src={image} alt={course.title} style={{ width: '72px', height: '52px', objectFit: 'cover', borderRadius: '10px' }} /> : null}
                     </div>
@@ -617,3 +618,4 @@ export const Dashboard: React.FC = () => {
     </div>
   );
 };
+

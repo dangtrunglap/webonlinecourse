@@ -1,7 +1,8 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, BookMarked, FileText, GraduationCap, PenSquare, Search, ShieldCheck, Users } from 'lucide-react';
 import api from '../services/api';
+import { formatVnd } from '../utils/currency';
 import { getMediaUrl } from '../utils/media';
 import type { BlogPost, ResourceFile } from '../types/content';
 
@@ -197,7 +198,7 @@ export const CourseList: React.FC = () => {
                   <Link key={course.id} to={`/courses/${course.id}`} className="card course-card">
                     <div className="course-image">
                       {image ? <img src={image} alt={course.title} /> : null}
-                      <span className="course-badge">${course.price.toFixed(2)}</span>
+                      <span className="course-badge">{formatVnd(course.price)}</span>
                     </div>
                     <div className="course-content">
                       <h3 className="line-clamp-2">{course.title}</h3>
