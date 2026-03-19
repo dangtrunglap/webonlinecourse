@@ -1,11 +1,13 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { FileText, PenSquare, User } from 'lucide-react';
+import { CheckCircle2, FileText, PenSquare, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { Seo } from '../components/Seo';
 import api from '../services/api';
 import { formatVnd } from '../utils/currency';
 import { getMediaUrl } from '../utils/media';
 import type { BlogPost, ResourceFile } from '../types/content';
+import { FACEBOOK_URL, SITE_NAME, SITE_URL, defaultOrganizationSchema } from '../constants/site';
 
 interface Course {
   id: string;
@@ -16,8 +18,22 @@ interface Course {
   instructorName: string;
 }
 
+const defaultFaqs = [
+  {
+    question: 'Khóa học này phù hợp với ai?',
+    answer: 'Phù hợp với người đang cần một lộ trình học có ví dụ thực hành, tài liệu kèm theo và định hướng rõ cách áp dụng vào môn học hoặc đồ án.',
+  },
+  {
+    question: 'Đăng ký như thế nào?',
+    answer: 'Bạn có thể nhắn fanpage Facebook để được hướng dẫn thanh toán thủ công, sau đó quản trị viên sẽ xác nhận và cấp quyền truy cập.',
+  },
+  {
+    question: 'Có tài liệu đi kèm không?',
+    answer: 'Nếu giảng viên đã gắn tài liệu vào khóa học, bạn sẽ thấy ngay trong phần tài liệu liên quan của trang này.',
+  },
+];
+
 export const CourseDetail: React.FC = () => {
-  const facebookContactUrl = 'https://www.facebook.com/civil.engineer.bk/';
   const { id } = useParams<{ id: string }>();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -47,17 +63,33 @@ export const CourseDetail: React.FC = () => {
       }
     };
 
-    fetchCourse();
+    void fetchCourse();
   }, [id]);
 
   const handleEnrollClick = () => {
+    window.dataLayer?.push({ event: 'course_cta_click', courseId: id, location: 'course_sidebar' });
+    window.gtag?.('event', 'course_cta_click', { course_id: id, location: 'course_sidebar' });
+    window.fbq?.('trackCustom', 'course_cta_click', { courseId: id, location: 'course_sidebar' });
+    window.ttq?.track?.('course_cta_click', { courseId: id, location: 'course_sidebar' });
+
     if (!isAuthenticated) {
       navigate('/login');
       return;
     }
 
-    window.open(facebookContactUrl, '_blank', 'noopener,noreferrer');
+    window.open(FACEBOOK_URL, '_blank', 'noopener,noreferrer');
   };
+
+  const image = getMediaUrl(course?.thumbnailUrl) ?? undefined;
+  const benefitPoints = useMemo(() => {
+    if (!course) return [];
+
+    return [
+      `Lộ trình xoay quanh chủ đề: ${course.title}.`,
+      `Có liên kết sang bài viết và tài liệu liên quan để bạn học liền mạch hơn.`,
+      `Phù hợp để dùng cho học phần, đồ án hoặc tự nâng cấp kỹ năng nền.`,
+    ];
+  }, [course]);
 
   if (loading) {
     return <div className="container"><div className="card" style={{ padding: '2rem', textAlign: 'center' }}>Đang tải...</div></div>;
@@ -67,10 +99,53 @@ export const CourseDetail: React.FC = () => {
     return <div className="container"><div className="card" style={{ padding: '2rem', textAlign: 'center' }}>Không tìm thấy khóa học.</div></div>;
   }
 
-  const image = getMediaUrl(course.thumbnailUrl);
-
   return (
     <div className="container reveal" style={{ display: 'grid', gap: '1.5rem' }}>
+      <Seo
+        title={`${course.title} | ${SITE_NAME}`}
+        description={course.description}
+        path={`/courses/${course.id}`}
+        image={image}
+        type="product"
+        jsonLd={[
+          defaultOrganizationSchema,
+          {
+            '@context': 'https://schema.org',
+            '@type': 'Course',
+            name: course.title,
+            description: course.description,
+            provider: {
+              '@type': 'Organization',
+              name: SITE_NAME,
+              url: SITE_URL,
+            },
+            instructor: {
+              '@type': 'Person',
+              name: course.instructorName,
+            },
+            offers: {
+              '@type': 'Offer',
+              price: course.price,
+              priceCurrency: 'VND',
+              availability: 'https://schema.org/InStock',
+              url: `${SITE_URL}/courses/${course.id}`,
+            },
+          },
+          {
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: defaultFaqs.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: {
+                '@type': 'Answer',
+                text: faq.answer,
+              },
+            })),
+          },
+        ]}
+      />
+
       {error && <div className="alert alert-error">{error}</div>}
 
       <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', alignItems: 'start' }}>
@@ -80,9 +155,17 @@ export const CourseDetail: React.FC = () => {
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', marginBottom: '1.2rem' }}>
             <User size={16} /> <span>Giảng viên: {course.instructorName}</span>
           </div>
+
           <div className="card" style={{ padding: '1rem', background: '#f8fafc', marginBottom: '1rem' }}>
-            <h3 style={{ marginBottom: '0.6rem' }}>Nội dung khóa học</h3>
-            <p className="muted">Liên hệ Facebook để thanh toán thủ công. Sau khi xác nhận giao dịch, quản trị viên sẽ cấp quyền truy cập khóa học cho bạn.</p>
+            <h3 style={{ marginBottom: '0.6rem' }}>Bạn sẽ nhận được gì?</h3>
+            <div style={{ display: 'grid', gap: '0.55rem' }}>
+              {benefitPoints.map((point) => (
+                <div key={point} style={{ display: 'inline-flex', alignItems: 'start', gap: '0.5rem' }}>
+                  <CheckCircle2 size={17} color="var(--accent)" style={{ marginTop: '0.15rem', flexShrink: 0 }} />
+                  <span className="muted">{point}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
           {relatedPosts.length > 0 ? (
@@ -98,6 +181,18 @@ export const CourseDetail: React.FC = () => {
               ))}
             </section>
           ) : null}
+
+          <section style={{ display: 'grid', gap: '0.8rem', marginTop: '1rem' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700, color: 'var(--primary)' }}>
+              <FileText size={17} /> FAQ
+            </div>
+            {defaultFaqs.map((faq) => (
+              <article key={faq.question} className="card" style={{ padding: '0.9rem', display: 'grid', gap: '0.35rem' }}>
+                <h3 style={{ fontSize: '1rem' }}>{faq.question}</h3>
+                <p className="muted">{faq.answer}</p>
+              </article>
+            ))}
+          </section>
         </article>
 
         <aside className="card" style={{ padding: '1rem', position: 'sticky', top: '90px', display: 'grid', gap: '1rem' }}>
@@ -106,7 +201,7 @@ export const CourseDetail: React.FC = () => {
           </div>
           <h2 style={{ fontSize: '2rem', color: 'var(--primary)' }}>{formatVnd(course.price)}</h2>
           <button type="button" className="btn btn-primary" style={{ width: '100%' }} onClick={handleEnrollClick}>
-            Liên hệ Facebook để thanh toán
+            Liên hệ Facebook để đăng ký
           </button>
           <p className="muted" style={{ margin: 0, fontSize: '0.95rem' }}>
             Hãy nhắn tin qua Facebook để được hướng dẫn thanh toán thủ công và xác nhận đăng ký khóa học.

@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Download, HardDriveDownload, MonitorSmartphone, PackageOpen, Search, Sparkles } from 'lucide-react';
+import { Seo } from '../components/Seo';
 import api from '../services/api';
 import type { ToolRelease } from '../types/content';
 import { getMediaUrl } from '../utils/media';
+import { SITE_NAME, SITE_URL } from '../constants/site';
 
 const formatBytes = (value: number) => {
   if (!value) return '0 B';
@@ -36,7 +38,7 @@ export const ToolLibrary: React.FC = () => {
       }
     };
 
-    fetchReleases();
+    void fetchReleases();
   }, []);
 
   const filteredReleases = useMemo(() => {
@@ -54,6 +56,19 @@ export const ToolLibrary: React.FC = () => {
 
   return (
     <div className="container reveal">
+      <Seo
+        title={`Công cụ | ${SITE_NAME}`}
+        description="Theo dõi phiên bản mới nhất của ứng dụng, xem ghi chú cập nhật và tải file cài đặt hoặc gói nén trực tiếp từ nền tảng."
+        path="/tools"
+        keywords={['cong cu xay dung', 'app hoc xay dung', 'download cong cu Revit ETABS']}
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'CollectionPage',
+          name: `Công cụ ${SITE_NAME}`,
+          url: `${SITE_URL}/tools`,
+        }}
+      />
+
       <section className="hero">
         <h1 className="hero-title">Công cụ</h1>
         <p className="hero-subtitle">

@@ -1,10 +1,29 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, BookMarked, FileText, GraduationCap, PenSquare, Search, ShieldCheck, Users } from 'lucide-react';
+import {
+  ArrowRight,
+  BookMarked,
+  FileText,
+  GraduationCap,
+  PenSquare,
+  Search,
+  ShieldCheck,
+  Users,
+} from 'lucide-react';
+import { Seo } from '../components/Seo';
 import api from '../services/api';
 import { formatVnd } from '../utils/currency';
 import { getMediaUrl } from '../utils/media';
 import type { BlogPost, ResourceFile } from '../types/content';
+import {
+  FACEBOOK_URL,
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  SITE_URL,
+  TOPIC_CLUSTERS,
+  defaultOrganizationSchema,
+  defaultWebsiteSchema,
+} from '../constants/site';
 
 interface Course {
   id: string;
@@ -29,12 +48,27 @@ const highlights = [
   {
     icon: GraduationCap,
     title: 'Lộ trình rõ ràng',
-    description: 'Từ cơ bản đến nâng cao, bố cục kiến thức dễ học và dễ ứng dụng.',
+    description: 'Từ cơ bản đến nâng cao, bố cục kiến thức dễ học và dễ áp dụng.',
   },
   {
     icon: ShieldCheck,
     title: 'Hỗ trợ tận tâm',
     description: 'Giải đáp nhanh trong quá trình học, đồng hành đến khi hoàn thành đồ án.',
+  },
+];
+
+const homepageFaqs = [
+  {
+    question: 'GHTXDBK là gì?',
+    answer: 'Đây là website tổng hợp khóa học, tài liệu, bài viết hướng dẫn và công cụ dành cho người học ngành xây dựng.',
+  },
+  {
+    question: 'Dành cho ai?',
+    answer: 'Phù hợp với sinh viên, người đang làm đồ án, người cần học Revit, ETABS và kỹ năng triển khai nội dung chuyên ngành.',
+  },
+  {
+    question: 'Hành động chính trên site là gì?',
+    answer: 'Bạn có thể khám phá khóa học, đọc blog, tải tài liệu và liên hệ tư vấn để chọn nội dung phù hợp.',
   },
 ];
 
@@ -80,35 +114,83 @@ export const CourseList: React.FC = () => {
       }
     };
 
-    fetchHighlights();
+    void fetchHighlights();
   }, []);
 
   const maxPage = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total]);
 
+  const liveStats = [
+    { label: 'Khóa học đang hiển thị', value: String(total || courses.length || 0) },
+    { label: 'Bài viết gần đây', value: String(latestPosts.length) },
+    { label: 'Tài liệu gần đây', value: String(latestResources.length) },
+  ];
+
   return (
     <div className="container reveal">
+      <Seo
+        title={`${SITE_NAME} | Khóa học xây dựng, tài liệu và blog thực chiến`}
+        description={SITE_DESCRIPTION}
+        path="/"
+        keywords={['GHTXDBK', 'khoa hoc Revit', 'khoa hoc ETABS', 'do an xay dung', 'tai lieu xay dung', 'TCVN']}
+        jsonLd={[
+          defaultOrganizationSchema,
+          defaultWebsiteSchema,
+          {
+            '@context': 'https://schema.org',
+            '@type': 'CollectionPage',
+            name: SITE_NAME,
+            url: SITE_URL,
+            description: SITE_DESCRIPTION,
+            about: TOPIC_CLUSTERS,
+          },
+          {
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: homepageFaqs.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: {
+                '@type': 'Answer',
+                text: faq.answer,
+              },
+            })),
+          },
+        ]}
+      />
+
       <section className="hero">
-        <h1 className="hero-title">Góc Học Tập Xây Dựng Bách Khoa</h1>
+        <h1 className="hero-title">Khóa học và tài nguyên xây dựng thực chiến từ GHTXDBK</h1>
         <p className="hero-subtitle">
-          Nền tảng khóa học thực chiến dành cho sinh viên xây dựng: Revit, ETABS, kỹ năng đồ án,
-          và tư duy làm việc chuyên nghiệp.
+          GHTXDBK dành cho sinh viên xây dựng, người đang làm đồ án và kỹ sư trẻ muốn học Revit, ETABS, tiêu chuẩn,
+          tài liệu thực hành và cách triển khai công việc theo hướng dễ áp dụng hơn.
         </p>
         <div className="hero-actions">
           <a href="#course-section" className="btn btn-primary">
             Khám phá khóa học <ArrowRight size={16} />
           </a>
-          <Link to="/blog" className="btn btn-secondary">
-            Xem blog giảng viên
+          <Link to="/resources" className="btn btn-secondary">
+            Nhận tài liệu
           </Link>
-          <a href="https://www.facebook.com/civil.engineer.bk/" className="btn btn-secondary" target="_blank" rel="noreferrer">
-            Liên hệ Facebook
+          <a href={FACEBOOK_URL} className="btn btn-secondary" target="_blank" rel="noreferrer">
+            Inbox tư vấn
           </a>
         </div>
       </section>
 
       <section className="section">
+        <div className="trust-panel">
+          {liveStats.map((stat) => (
+            <article key={stat.label} className="trust-stat">
+              <strong>{stat.value}</strong>
+              <span>{stat.label}</span>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="section">
         <h2 className="section-title">Tại sao chọn GHTXDBK?</h2>
-        <p className="section-subtitle">Một hệ sinh thái học tập được thiết kế cho sinh viên xây dựng.</p>
+        <p className="section-subtitle">Một hệ sinh thái học tập được thiết kế cho sinh viên xây dựng học đúng thứ mình đang cần.</p>
         <div className="grid grid-4">
           {highlights.map((item) => {
             const Icon = item.icon;
@@ -124,10 +206,24 @@ export const CourseList: React.FC = () => {
       </section>
 
       <section className="section">
+        <h2 className="section-title">Cụm nội dung trọng tâm</h2>
+        <p className="section-subtitle">Đây là các nhóm chủ đề nên tiếp tục được đẩy mạnh để tận dụng nhu cầu tìm kiếm và footprint nội dung hiện có.</p>
+        <div className="topic-grid">
+          {TOPIC_CLUSTERS.map((topic) => (
+            <article key={topic} className="card topic-card">
+              <h3>{topic}</h3>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="section">
         <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.2rem' }}>
           <div>
             <h2 className="section-title" style={{ textAlign: 'left', marginBottom: '0.35rem' }}>Chia sẻ mới từ giảng viên</h2>
-            <p className="section-subtitle" style={{ textAlign: 'left', marginBottom: 0 }}>Kinh nghiệm đồ án, mẹo học và tài liệu cập nhật ngay trên nền tảng.</p>
+            <p className="section-subtitle" style={{ textAlign: 'left', marginBottom: 0 }}>
+              Kinh nghiệm đồ án, mẹo học và tài liệu cập nhật ngay trên nền tảng.
+            </p>
           </div>
           <div style={{ display: 'flex', gap: '0.7rem', flexWrap: 'wrap' }}>
             <Link to="/blog" className="btn btn-secondary">Toàn bộ bài viết</Link>
@@ -224,6 +320,18 @@ export const CourseList: React.FC = () => {
             </div>
           </>
         )}
+      </section>
+
+      <section className="section">
+        <h2 className="section-title">FAQ nhanh</h2>
+        <div className="grid grid-3">
+          {homepageFaqs.map((faq) => (
+            <article key={faq.question} className="card" style={{ padding: '1.15rem', display: 'grid', gap: '0.6rem' }}>
+              <h3 style={{ fontSize: '1.05rem' }}>{faq.question}</h3>
+              <p className="muted">{faq.answer}</p>
+            </article>
+          ))}
+        </div>
       </section>
     </div>
   );

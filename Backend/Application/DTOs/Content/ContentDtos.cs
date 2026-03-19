@@ -6,12 +6,14 @@ public class BlogPostDto
     public string Title { get; set; } = string.Empty;
     public string Summary { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
+    public string? CoverImageUrl { get; set; }
     public string InstructorId { get; set; } = string.Empty;
     public string InstructorName { get; set; } = string.Empty;
     public string? CourseId { get; set; }
     public string? CourseTitle { get; set; }
     public bool Featured { get; set; }
     public DateTime PublishedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
 }
 
 public class CreateBlogPostDto
@@ -21,6 +23,7 @@ public class CreateBlogPostDto
     public string Content { get; set; } = string.Empty;
     public string? CourseId { get; set; }
     public bool Featured { get; set; }
+    public bool RemoveCoverImage { get; set; }
 }
 
 public class ResourceFileDto

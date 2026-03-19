@@ -25,6 +25,8 @@ export const Navbar: React.FC = () => {
           <Link to="/blog" className="nav-link">Blog</Link>
           <Link to="/resources" className="nav-link">Tài liệu</Link>
           <Link to="/tools" className="nav-link">Công cụ</Link>
+          <Link to="/about" className="nav-link">Giới thiệu</Link>
+          <Link to="/contact" className="nav-link">Liên hệ</Link>
           {isAuthenticated && user?.role === 'Student' && <Link to="/my-courses" className="nav-link">Khóa của tôi</Link>}
           {isAuthenticated && (user?.role === 'Instructor' || user?.role === 'Admin') && (
             <Link to="/admin/courses" className="nav-link">Bảng điều khiển</Link>

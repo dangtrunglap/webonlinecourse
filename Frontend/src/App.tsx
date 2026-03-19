@@ -13,6 +13,10 @@ import { BlogList } from './pages/BlogList';
 import { BlogDetail } from './pages/BlogDetail';
 import { ResourceLibrary } from './pages/ResourceLibrary';
 import { ToolLibrary } from './pages/ToolLibrary';
+import { AboutPage } from './pages/AboutPage';
+import { ContactPage } from './pages/ContactPage';
+import { FaqPage } from './pages/FaqPage';
+import { PoliciesPage } from './pages/PoliciesPage';
 
 const App: React.FC = () => {
   return (
@@ -28,6 +32,10 @@ const App: React.FC = () => {
             <Route path="blog/:id" element={<BlogDetail />} />
             <Route path="resources" element={<ResourceLibrary />} />
             <Route path="tools" element={<ToolLibrary />} />
+            <Route path="about" element={<AboutPage />} />
+            <Route path="contact" element={<ContactPage />} />
+            <Route path="faq" element={<FaqPage />} />
+            <Route path="policies" element={<PoliciesPage />} />
             <Route path="my-courses" element={<ProtectedRoute><MyCourses /></ProtectedRoute>} />
             <Route path="admin/courses" element={<ProtectedRoute allowedRoles={['Instructor', 'Admin']}><Dashboard /></ProtectedRoute>} />
           </Route>

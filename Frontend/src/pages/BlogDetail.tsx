@@ -1,9 +1,12 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, CalendarDays, User } from 'lucide-react';
+import { Seo } from '../components/Seo';
 import api from '../services/api';
 import type { BlogPost, ResourceFile } from '../types/content';
+import { sanitizeBlogHtml } from '../utils/blogHtml';
 import { getMediaUrl } from '../utils/media';
+import { SITE_NAME, SITE_URL, defaultOrganizationSchema } from '../constants/site';
 
 export const BlogDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -31,7 +34,7 @@ export const BlogDetail: React.FC = () => {
       }
     };
 
-    fetchData();
+    void fetchData();
   }, [id]);
 
   if (loading) {
@@ -42,8 +45,42 @@ export const BlogDetail: React.FC = () => {
     return <div className="container"><div className="card" style={{ padding: '2rem', textAlign: 'center' }}>{error || 'Không tìm thấy bài viết.'}</div></div>;
   }
 
+  const coverImage = getMediaUrl(post.coverImageUrl);
+  const safeHtml = sanitizeBlogHtml(post.content);
+
   return (
     <div className="container reveal" style={{ display: 'grid', gap: '1.6rem' }}>
+      <Seo
+        title={`${post.title} | ${SITE_NAME}`}
+        description={post.summary}
+        path={`/blog/${post.id}`}
+        image={coverImage ?? undefined}
+        type="article"
+        publishedTime={post.publishedAt}
+        modifiedTime={post.updatedAt ?? undefined}
+        jsonLd={[
+          defaultOrganizationSchema,
+          {
+            '@context': 'https://schema.org',
+            '@type': 'Article',
+            headline: post.title,
+            description: post.summary,
+            image: coverImage ? [coverImage] : undefined,
+            datePublished: post.publishedAt,
+            dateModified: post.updatedAt ?? post.publishedAt,
+            author: {
+              '@type': 'Person',
+              name: post.instructorName,
+            },
+            publisher: {
+              '@type': 'Organization',
+              name: SITE_NAME,
+            },
+            mainEntityOfPage: `${SITE_URL}/blog/${post.id}`,
+          },
+        ]}
+      />
+
       <div>
         <Link to="/blog" className="btn btn-secondary">
           <ArrowLeft size={16} /> Quay lại blog
@@ -51,6 +88,13 @@ export const BlogDetail: React.FC = () => {
       </div>
 
       <article className="card" style={{ padding: '1.5rem', display: 'grid', gap: '1rem' }}>
+        {coverImage ? (
+          <img
+            src={coverImage}
+            alt={post.title}
+            style={{ width: '100%', maxHeight: '420px', objectFit: 'cover', borderRadius: '18px' }}
+          />
+        ) : null}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
           <span className="btn btn-secondary" style={{ padding: '0.35rem 0.7rem', cursor: 'default' }}>
             {post.courseTitle || 'Chia sẻ chuyên môn'}
@@ -64,10 +108,13 @@ export const BlogDetail: React.FC = () => {
         <div className="muted" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', fontSize: '0.94rem' }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}><User size={15} /> {post.instructorName}</span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}><CalendarDays size={15} /> {new Date(post.publishedAt).toLocaleDateString('vi-VN')}</span>
+          {post.updatedAt ? (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+              Cập nhật: {new Date(post.updatedAt).toLocaleDateString('vi-VN')}
+            </span>
+          ) : null}
         </div>
-        <div style={{ whiteSpace: 'pre-line', lineHeight: 1.8, color: 'var(--foreground)' }}>
-          {post.content}
-        </div>
+        <div className="blog-rendered" dangerouslySetInnerHTML={{ __html: safeHtml }} />
       </article>
 
       {resources.length > 0 ? (

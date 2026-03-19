@@ -8,8 +8,9 @@ public interface ICommunityContentService
 {
     Task<IReadOnlyList<BlogPostDto>> GetBlogPostsAsync(string? courseId, string? instructorId, int? limit);
     Task<BlogPostDto?> GetBlogPostByIdAsync(string id);
-    Task<BlogPostDto> CreateBlogPostAsync(CreateBlogPostDto dto, string currentUserId, string currentUserName, string role);
-    Task<bool> DeleteBlogPostAsync(string id, string currentUserId, string role);
+    Task<BlogPostDto> CreateBlogPostAsync(CreateBlogPostDto dto, string currentUserId, string currentUserName, string role, string? coverImageUrl = null);
+    Task<BlogPostUpdateResult?> UpdateBlogPostAsync(string id, CreateBlogPostDto dto, string currentUserId, string currentUserName, string role, string? newCoverImageUrl = null);
+    Task<StoredContentDeleteResult> DeleteBlogPostAsync(string id, string currentUserId, string role);
 
     Task<IReadOnlyList<ResourceFileDto>> GetResourcesAsync(string? courseId, string? instructorId, int? limit);
     Task<ResourceFileDto> CreateResourceAsync(CreateResourceDto dto, StoredFileDetails file, string currentUserId, string currentUserName, string role);
@@ -21,6 +22,7 @@ public interface ICommunityContentService
 }
 
 public record StoredContentDeleteResult(bool Deleted, string? FileUrl);
+public record BlogPostUpdateResult(BlogPostDto Post, string? PreviousCoverImageUrl);
 
 public class CommunityContentService : ICommunityContentService
 {
@@ -78,7 +80,7 @@ public class CommunityContentService : ICommunityContentService
         return post == null ? null : MapBlogPost(post);
     }
 
-    public async Task<BlogPostDto> CreateBlogPostAsync(CreateBlogPostDto dto, string currentUserId, string currentUserName, string role)
+    public async Task<BlogPostDto> CreateBlogPostAsync(CreateBlogPostDto dto, string currentUserId, string currentUserName, string role, string? coverImageUrl = null)
     {
         var courseContext = await ResolveCourseContextAsync(dto.CourseId, currentUserId, role);
         var record = new BlogPostRecord
@@ -87,6 +89,7 @@ public class CommunityContentService : ICommunityContentService
             Title = dto.Title.Trim(),
             Summary = dto.Summary.Trim(),
             Content = dto.Content.Trim(),
+            CoverImageUrl = coverImageUrl,
             InstructorId = currentUserId,
             InstructorName = currentUserName,
             CourseId = courseContext.CourseId,
@@ -110,7 +113,49 @@ public class CommunityContentService : ICommunityContentService
         return MapBlogPost(record);
     }
 
-    public async Task<bool> DeleteBlogPostAsync(string id, string currentUserId, string role)
+    public async Task<BlogPostUpdateResult?> UpdateBlogPostAsync(string id, CreateBlogPostDto dto, string currentUserId, string currentUserName, string role, string? newCoverImageUrl = null)
+    {
+        var courseContext = await ResolveCourseContextAsync(dto.CourseId, currentUserId, role);
+
+        await SyncLock.WaitAsync();
+        try
+        {
+            var posts = await LoadAsync<BlogPostRecord>(_blogPostsPath);
+            var post = posts.FirstOrDefault(item => string.Equals(item.Id, id, StringComparison.OrdinalIgnoreCase));
+            if (post == null)
+                return null;
+
+            if (!CanManageContent(post.InstructorId, currentUserId, role))
+                throw new UnauthorizedAccessException("Bạn không có quyền chỉnh sửa bài blog này.");
+
+            var previousCoverImageUrl = post.CoverImageUrl;
+
+            post.Title = dto.Title.Trim();
+            post.Summary = dto.Summary.Trim();
+            post.Content = dto.Content.Trim();
+            post.CourseId = courseContext.CourseId;
+            post.CourseTitle = courseContext.CourseTitle;
+            post.Featured = dto.Featured;
+            post.InstructorName = currentUserName;
+
+            if (dto.RemoveCoverImage)
+                post.CoverImageUrl = null;
+
+            if (!string.IsNullOrWhiteSpace(newCoverImageUrl))
+                post.CoverImageUrl = newCoverImageUrl;
+
+            post.UpdatedAt = DateTime.UtcNow;
+
+            await SaveAsync(_blogPostsPath, posts);
+            return new BlogPostUpdateResult(MapBlogPost(post), previousCoverImageUrl);
+        }
+        finally
+        {
+            SyncLock.Release();
+        }
+    }
+
+    public async Task<StoredContentDeleteResult> DeleteBlogPostAsync(string id, string currentUserId, string role)
     {
         await SyncLock.WaitAsync();
         try
@@ -118,14 +163,14 @@ public class CommunityContentService : ICommunityContentService
             var posts = await LoadAsync<BlogPostRecord>(_blogPostsPath);
             var post = posts.FirstOrDefault(item => string.Equals(item.Id, id, StringComparison.OrdinalIgnoreCase));
             if (post == null)
-                return false;
+                return new StoredContentDeleteResult(false, null);
 
             if (!CanManageContent(post.InstructorId, currentUserId, role))
-                return false;
+                return new StoredContentDeleteResult(false, null);
 
             posts.Remove(post);
             await SaveAsync(_blogPostsPath, posts);
-            return true;
+            return new StoredContentDeleteResult(true, post.CoverImageUrl);
         }
         finally
         {
@@ -371,12 +416,14 @@ public class CommunityContentService : ICommunityContentService
             Title = post.Title,
             Summary = post.Summary,
             Content = post.Content,
+            CoverImageUrl = post.CoverImageUrl,
             InstructorId = post.InstructorId,
             InstructorName = post.InstructorName,
             CourseId = post.CourseId,
             CourseTitle = post.CourseTitle,
             Featured = post.Featured,
-            PublishedAt = post.PublishedAt
+            PublishedAt = post.PublishedAt,
+            UpdatedAt = post.UpdatedAt
         };
     }
 
@@ -429,12 +476,14 @@ public class CommunityContentService : ICommunityContentService
         public string Title { get; set; } = string.Empty;
         public string Summary { get; set; } = string.Empty;
         public string Content { get; set; } = string.Empty;
+        public string? CoverImageUrl { get; set; }
         public string InstructorId { get; set; } = string.Empty;
         public string InstructorName { get; set; } = string.Empty;
         public string? CourseId { get; set; }
         public string? CourseTitle { get; set; }
         public bool Featured { get; set; }
         public DateTime PublishedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
     }
 
     private sealed class ResourceFileRecord

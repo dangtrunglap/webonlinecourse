@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Montserrat:wght@600;700;800&display=swap');
-
 :root {
   --primary: #1e3a8a;
   --primary-foreground: #ffffff;
@@ -66,9 +64,9 @@ select {
 
 .container {
   width: 100%;
-  max-width: 1280px;
+  max-width: 1440px;
   margin: 0 auto;
-  padding: 0 1rem;
+  padding: 0 1.5rem;
 }
 
 .page-shell {
@@ -97,7 +95,7 @@ select {
   align-items: center;
   justify-content: space-between;
   min-height: 74px;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
 .brand {
@@ -127,11 +125,23 @@ select {
   gap: 0.75rem;
 }
 
+.nav-links {
+  flex: 1 1 auto;
+  justify-content: center;
+  min-width: 0;
+}
+
+.nav-actions {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .nav-link {
   color: var(--foreground);
   padding: 0.45rem 0.6rem;
   border-radius: 8px;
   font-weight: 500;
+  white-space: nowrap;
   transition: color 0.2s ease, background-color 0.2s ease;
 }
 
@@ -302,7 +312,7 @@ select {
 .course-image img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   object-position: center;
 }
 
@@ -502,6 +512,85 @@ select {
   color: rgba(249, 250, 251, 0.82);
 }
 
+.footer a {
+  display: block;
+  margin-bottom: 0.45rem;
+}
+
+.trust-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.trust-stat {
+  padding: 1.1rem 1rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  display: grid;
+  gap: 0.35rem;
+  text-align: center;
+}
+
+.trust-stat strong {
+  font-size: clamp(1.7rem, 4vw, 2.2rem);
+  color: var(--primary);
+  font-family: 'Montserrat', 'Be Vietnam Pro', sans-serif;
+}
+
+.trust-stat span {
+  color: var(--muted-foreground);
+  font-size: 0.94rem;
+}
+
+.topic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.topic-card {
+  padding: 1.1rem;
+  background: linear-gradient(145deg, rgba(248, 251, 255, 0.95), rgba(255, 247, 242, 0.95));
+}
+
+.topic-card h3 {
+  font-size: 1.04rem;
+  color: var(--primary);
+}
+
+.topic-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.38rem 0.75rem;
+  border-radius: 999px;
+  background: #eef4ff;
+  color: var(--primary);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.mobile-sticky-cta {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 45;
+  display: none;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem calc(0.9rem + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.96);
+  border-top: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+}
+
+.mobile-sticky-cta .btn {
+  flex: 1;
+}
+
 .reveal {
   animation: fade-up 0.55s ease both;
 }
@@ -533,7 +622,87 @@ select {
     width: 100%;
     overflow-x: auto;
     padding-bottom: 0.4rem;
+    justify-content: flex-start;
+  }
+
+  .page-main {
+    padding-bottom: 6rem;
+  }
+
+  .mobile-sticky-cta {
+    display: flex;
   }
 }
 
 
+.blog-rendered {
+  line-height: 1.8;
+  color: var(--foreground);
+}
+
+.blog-rendered > * + * {
+  margin-top: 1rem;
+}
+
+.blog-rendered img {
+  width: 100%;
+  max-height: 460px;
+  object-fit: cover;
+  border-radius: 16px;
+  margin: 1rem 0;
+}
+
+.blog-rendered a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.blog-rendered blockquote {
+  border-left: 4px solid var(--accent);
+  padding-left: 1rem;
+  color: var(--muted-foreground);
+}
+
+.rich-editor-shell {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.rich-editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  padding: 0.7rem;
+  border-bottom: 1px solid var(--border);
+  background: #f8fafc;
+}
+
+.rich-editor-btn {
+  min-width: 42px;
+  padding: 0.55rem 0.7rem;
+}
+
+.rich-editor-input {
+  min-height: 320px;
+  padding: 0.95rem;
+  outline: none;
+  text-align: left;
+}
+
+.rich-editor-input:empty::before {
+  content: attr(data-placeholder);
+  color: var(--muted-foreground);
+}
+
+.rich-editor-input img {
+  max-width: 100%;
+  border-radius: 12px;
+}
+
+.rich-editor-input blockquote {
+  border-left: 4px solid var(--accent);
+  padding-left: 0.85rem;
+  color: var(--muted-foreground);
+}

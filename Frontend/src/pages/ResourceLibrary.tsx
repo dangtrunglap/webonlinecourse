@@ -1,8 +1,10 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Download, FileText, Search, User } from 'lucide-react';
+import { Seo } from '../components/Seo';
 import api from '../services/api';
 import type { ResourceFile } from '../types/content';
 import { getMediaUrl } from '../utils/media';
+import { SITE_NAME, SITE_URL } from '../constants/site';
 
 const formatBytes = (value: number) => {
   if (!value) return '0 B';
@@ -30,7 +32,7 @@ export const ResourceLibrary: React.FC = () => {
       }
     };
 
-    fetchResources();
+    void fetchResources();
   }, []);
 
   const filteredResources = useMemo(() => {
@@ -46,6 +48,19 @@ export const ResourceLibrary: React.FC = () => {
 
   return (
     <div className="container reveal">
+      <Seo
+        title={`Thư viện tài liệu | ${SITE_NAME}`}
+        description="File bài tập, tài liệu hướng dẫn, checklist và biểu mẫu được giảng viên GHTXDBK chia sẻ trực tiếp trên nền tảng."
+        path="/resources"
+        keywords={['tai lieu xay dung', 'tai lieu Revit', 'tai lieu ETABS', 'checklist do an']}
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'CollectionPage',
+          name: `Thư viện tài liệu ${SITE_NAME}`,
+          url: `${SITE_URL}/resources`,
+        }}
+      />
+
       <section className="hero">
         <h1 className="hero-title">Thư viện tài liệu</h1>
         <p className="hero-subtitle">
