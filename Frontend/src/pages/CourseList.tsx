@@ -79,7 +79,7 @@ export const CourseList: React.FC = () => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const pageSize = 8;
 
   useEffect(() => {
@@ -220,7 +220,7 @@ export const CourseList: React.FC = () => {
       <section className="section">
         <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.2rem' }}>
           <div>
-            <h2 className="section-title" style={{ textAlign: 'left', marginBottom: '0.35rem' }}>Chia sẻ mới từ giảng viên</h2>
+            <h2 className="section-title" style={{ textAlign: 'left', marginBottom: '0.35rem' }}>Chia sẻ mới từ GHTXDBK</h2>
             <p className="section-subtitle" style={{ textAlign: 'left', marginBottom: 0 }}>
               Kinh nghiệm đồ án, mẹo học và tài liệu cập nhật ngay trên nền tảng.
             </p>
@@ -234,7 +234,7 @@ export const CourseList: React.FC = () => {
         <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
           <section className="card" style={{ padding: '1.15rem', display: 'grid', gap: '0.9rem' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)', fontWeight: 700 }}>
-              <PenSquare size={18} /> Blog giảng viên
+              <PenSquare size={18} /> Blog mới
             </div>
             {latestPosts.length === 0 ? (
               <p className="muted">Bài viết mới sẽ xuất hiện tại đây.</p>
@@ -287,7 +287,7 @@ export const CourseList: React.FC = () => {
           <div className="card" style={{ padding: '2rem', textAlign: 'center' }}>Không tìm thấy khóa học phù hợp.</div>
         ) : (
           <>
-            <div className="grid grid-4">
+            <div className="grid course-grid">
               {courses.map((course) => {
                 const image = getMediaUrl(course.thumbnailUrl);
                 return (
@@ -299,7 +299,7 @@ export const CourseList: React.FC = () => {
                     <div className="course-content">
                       <h3 className="line-clamp-2">{course.title}</h3>
                       <p className="muted line-clamp-3 course-description-preview">{course.description}</p>
-                      <div className="muted" style={{ fontSize: '0.9rem' }}>Giảng viên: {course.instructorName}</div>
+                      <div className="muted" style={{ fontSize: '0.9rem' }}>Người hướng dẫn: {course.instructorName}</div>
                       <button type="button" className="btn btn-secondary" style={{ width: '100%' }}>
                         Xem chi tiết
                       </button>

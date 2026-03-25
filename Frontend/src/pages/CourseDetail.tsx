@@ -29,7 +29,7 @@ const defaultFaqs = [
   },
   {
     question: 'Có tài liệu đi kèm không?',
-    answer: 'Nếu giảng viên đã gắn tài liệu vào khóa học, bạn sẽ thấy ngay trong phần tài liệu liên quan của trang này.',
+    answer: 'Nếu khóa học đã được gắn tài liệu bổ trợ, bạn sẽ thấy ngay trong phần tài liệu liên quan của trang này.',
   },
 ];
 
@@ -86,8 +86,8 @@ export const CourseDetail: React.FC = () => {
 
     return [
       `Lộ trình xoay quanh chủ đề: ${course.title}.`,
-      `Có liên kết sang bài viết và tài liệu liên quan để bạn học liền mạch hơn.`,
-      `Phù hợp để dùng cho học phần, đồ án hoặc tự nâng cấp kỹ năng nền.`,
+      'Có liên kết sang bài viết và tài liệu liên quan để bạn học liền mạch hơn.',
+      'Phù hợp để dùng cho học phần, đồ án hoặc tự nâng cấp kỹ năng nền.',
     ];
   }, [course]);
 
@@ -153,7 +153,7 @@ export const CourseDetail: React.FC = () => {
           <h1 style={{ fontSize: '2rem', marginBottom: '0.85rem' }}>{course.title}</h1>
           <p className="muted course-description" style={{ marginBottom: '1rem' }}>{course.description}</p>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', marginBottom: '1.2rem' }}>
-            <User size={16} /> <span>Giảng viên: {course.instructorName}</span>
+            <User size={16} /> <span>Người hướng dẫn: {course.instructorName}</span>
           </div>
 
           <div className="card" style={{ padding: '1rem', background: '#f8fafc', marginBottom: '1rem' }}>
@@ -212,7 +212,7 @@ export const CourseDetail: React.FC = () => {
               <FileText size={17} /> Tài liệu khóa học
             </div>
             {relatedResources.length === 0 ? (
-              <p className="muted">Tài liệu sẽ được giảng viên cập nhật tại đây.</p>
+              <p className="muted">Tài liệu sẽ được cập nhật tại đây.</p>
             ) : relatedResources.map((resource) => {
               const fileUrl = getMediaUrl(resource.fileUrl);
               return (

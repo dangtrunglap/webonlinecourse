@@ -79,6 +79,7 @@ public class BlogPostsController : ControllerBase
 
     [Authorize(Policy = "RequireInstructor")]
     [HttpPut("{id}")]
+    [HttpPost("{id}/update")]
     [RequestSizeLimit(15_000_000)]
     public async Task<IActionResult> UpdateBlogPost(string id, [FromForm] CreateBlogPostDto dto, IFormFile? coverImage)
     {
@@ -211,3 +212,5 @@ public class BlogPostsController : ControllerBase
 
     private sealed record StoredUploadFile(string FileUrl, string PhysicalPath);
 }
+
+

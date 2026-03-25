@@ -1,7 +1,8 @@
-﻿import React from 'react';
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BookOpen, LayoutDashboard, Library, LogOut, Newspaper, User, Wrench } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import brandLogo from '../../asset/Logo_GHTXDBK.jpg';
 
 export const Navbar: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -16,7 +17,9 @@ export const Navbar: React.FC = () => {
     <nav className="navbar">
       <div className="container nav-inner">
         <Link to="/" className="brand">
-          <span className="brand-badge">G</span>
+          <span className="brand-badge">
+            <img src={brandLogo} alt="GHTXDBK" className="brand-logo" />
+          </span>
           <span>GHTXDBK</span>
         </Link>
 

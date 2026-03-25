@@ -11,7 +11,7 @@ import { FACEBOOK_URL, SITE_NAME, SITE_URL } from '../constants/site';
 export const BlogList: React.FC = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -43,8 +43,8 @@ export const BlogList: React.FC = () => {
   return (
     <div className="container reveal">
       <Seo
-        title={`Blog giảng viên | ${SITE_NAME}`}
-        description="Tổng hợp bài viết chuyên môn, kinh nghiệm đồ án và chia sẻ thực chiến từ đội ngũ giảng viên GHTXDBK."
+        title={`Blog chuyên môn | ${SITE_NAME}`}
+        description="Tổng hợp bài viết chuyên môn, kinh nghiệm đồ án và chia sẻ thực chiến từ đội ngũ GHTXDBK."
         path="/blog"
         keywords={['blog xay dung', 'blog Revit', 'blog ETABS', 'kinh nghiem do an']}
         jsonLd={{
@@ -56,9 +56,9 @@ export const BlogList: React.FC = () => {
       />
 
       <section className="hero">
-        <h1 className="hero-title">Blog giảng viên</h1>
+        <h1 className="hero-title">Blog chuyên môn</h1>
         <p className="hero-subtitle">
-          Tổng hợp bài viết chuyên môn, kinh nghiệm đồ án và chia sẻ thực chiến từ đội ngũ giảng viên GHTXDBK.
+          Tổng hợp bài viết chuyên môn, kinh nghiệm đồ án và chia sẻ thực chiến từ đội ngũ GHTXDBK.
         </p>
         <div className="hero-actions">
           <Link to="/resources" className="btn btn-secondary">Xem thư viện tài liệu</Link>
@@ -73,7 +73,7 @@ export const BlogList: React.FC = () => {
           <Search className="search-icon" size={18} />
           <input
             type="text"
-            placeholder="Tìm theo chủ đề, khóa học, giảng viên..."
+            placeholder="Tìm theo chủ đề, khóa học..."
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />

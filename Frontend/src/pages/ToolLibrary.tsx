@@ -23,7 +23,7 @@ const formatReleaseDate = (value: string) => new Date(value).toLocaleDateString(
 export const ToolLibrary: React.FC = () => {
   const [releases, setReleases] = useState<ToolRelease[]>([]);
   const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchReleases = async () => {

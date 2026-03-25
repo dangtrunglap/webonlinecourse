@@ -57,7 +57,7 @@ export const AboutPage: React.FC = () => {
     void fetchData();
   }, []);
 
-  const instructors = useMemo(() => {
+  const creators = useMemo(() => {
     const map = new Map<string, { name: string; topics: string[] }>();
 
     for (const course of courses) {
@@ -86,7 +86,7 @@ export const AboutPage: React.FC = () => {
         title={`Giới thiệu | ${SITE_NAME}`}
         description="Tìm hiểu GHTXDBK là gì, đang đào tạo chủ đề nào và đội ngũ đang xuất bản nội dung trên nền tảng."
         path="/about"
-        keywords={['gioi thieu GHTXDBK', 'doi ngu giang vien xay dung', 'hoc Revit ETABS']}
+        keywords={['gioi thieu GHTXDBK', 'doi ngu xay dung', 'hoc Revit ETABS']}
         jsonLd={[
           defaultOrganizationSchema,
           defaultWebsiteSchema,
@@ -136,28 +136,28 @@ export const AboutPage: React.FC = () => {
       <section className="section">
         <h2 className="section-title">Đội ngũ đang xuất bản nội dung</h2>
         <p className="section-subtitle">
-          Đây là các tên giảng viên đã xuất hiện trên nội dung hiện có của nền tảng. Hồ sơ chi tiết có thể tiếp tục được cập nhật ở bước sau.
+          Đây là các tên đang xuất hiện trên nội dung hiện có của nền tảng. Hồ sơ chi tiết có thể tiếp tục được cập nhật ở bước sau.
         </p>
 
-        {instructors.length === 0 ? (
+        {creators.length === 0 ? (
           <div className="card" style={{ padding: '1.2rem', textAlign: 'center' }}>
-            Thông tin giảng viên đang được đồng bộ từ dữ liệu khóa học và blog.
+            Thông tin đội ngũ đang được đồng bộ từ dữ liệu khóa học và blog.
           </div>
         ) : (
           <div className="grid grid-3">
-            {instructors.map((instructor) => (
-              <article key={instructor.name} className="card" style={{ padding: '1.1rem', display: 'grid', gap: '0.8rem' }}>
+            {creators.map((creator) => (
+              <article key={creator.name} className="card" style={{ padding: '1.1rem', display: 'grid', gap: '0.8rem' }}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)', fontWeight: 700 }}>
-                  <GraduationCap size={18} /> {instructor.name}
+                  <GraduationCap size={18} /> {creator.name}
                 </div>
                 <p className="muted">
                   Đang xuất bản nội dung liên quan đến các chủ đề học tập và triển khai kỹ thuật trên GHTXDBK.
                 </p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.55rem' }}>
-                  {instructor.topics.length === 0 ? (
+                  {creator.topics.length === 0 ? (
                     <span className="topic-chip">Chủ đề đang cập nhật</span>
                   ) : (
-                    instructor.topics.map((topic) => (
+                    creator.topics.map((topic) => (
                       <span key={topic} className="topic-chip">{topic}</span>
                     ))
                   )}

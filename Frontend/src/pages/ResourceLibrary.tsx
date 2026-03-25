@@ -17,7 +17,7 @@ const formatBytes = (value: number) => {
 export const ResourceLibrary: React.FC = () => {
   const [resources, setResources] = useState<ResourceFile[]>([]);
   const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchResources = async () => {
@@ -50,7 +50,7 @@ export const ResourceLibrary: React.FC = () => {
     <div className="container reveal">
       <Seo
         title={`Thư viện tài liệu | ${SITE_NAME}`}
-        description="File bài tập, tài liệu hướng dẫn, checklist và biểu mẫu được giảng viên GHTXDBK chia sẻ trực tiếp trên nền tảng."
+        description="File bài tập, tài liệu hướng dẫn, checklist và biểu mẫu được GHTXDBK chia sẻ trực tiếp trên nền tảng."
         path="/resources"
         keywords={['tai lieu xay dung', 'tai lieu Revit', 'tai lieu ETABS', 'checklist do an']}
         jsonLd={{
@@ -64,7 +64,7 @@ export const ResourceLibrary: React.FC = () => {
       <section className="hero">
         <h1 className="hero-title">Thư viện tài liệu</h1>
         <p className="hero-subtitle">
-          File bài tập, tài liệu hướng dẫn, checklist và biểu mẫu được giảng viên chia sẻ trực tiếp trên nền tảng.
+          File bài tập, tài liệu hướng dẫn, checklist và biểu mẫu được GHTXDBK chia sẻ trực tiếp trên nền tảng.
         </p>
       </section>
 
@@ -73,7 +73,7 @@ export const ResourceLibrary: React.FC = () => {
           <Search className="search-icon" size={18} />
           <input
             type="text"
-            placeholder="Tìm theo tên tài liệu, khóa học, giảng viên..."
+            placeholder="Tìm theo tên tài liệu, khóa học..."
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />

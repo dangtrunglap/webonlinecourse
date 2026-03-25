@@ -221,9 +221,20 @@ export const Dashboard: React.FC = () => {
       const formData = buildBlogFormData();
 
       if (editingBlogId) {
-        await api.put(`/blogposts/${editingBlogId}`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        try {
+          await api.put(`/blogposts/${editingBlogId}`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+        } catch (updateError: any) {
+          if (updateError?.response?.status !== 405) {
+            throw updateError;
+          }
+
+          await api.post(`/blogposts/${editingBlogId}/update`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+        }
+
         setSuccessMessage('Cập nhật blog thành công.');
       } else {
         await api.post('/blogposts', formData, {
@@ -344,7 +355,11 @@ export const Dashboard: React.FC = () => {
       setSuccessMessage('Đã tải app lên thành công.');
       void fetchDashboardData();
     } catch (err: any) {
-      setErrorMessage(err.response?.data?.message || err.response?.data?.Message || 'Tải app thất bại.');
+      const status = err.response?.status;
+      const message = status === 413
+        ? 'File vượt quá giới hạn upload của server. Hiện tại hãy dùng file nhỏ hơn 250 MB.'
+        : err.response?.data?.message || err.response?.data?.Message || 'Tải app thất bại.';
+      setErrorMessage(message);
     }
   };
 
@@ -428,7 +443,7 @@ export const Dashboard: React.FC = () => {
 
       <section className="hero" style={{ padding: '2.2rem 1.5rem' }}>
         <h1 className="hero-title" style={{ fontSize: 'clamp(1.7rem, 4vw, 2.4rem)' }}>
-          {user?.role === 'Admin' ? 'Bảng điều khiển quản trị' : 'Bảng điều khiển giảng viên'}
+          {user?.role === 'Admin' ? 'Bảng điều khiển quản trị' : 'Bảng điều khiển nội dung'}
         </h1>
         <p className="hero-subtitle">
           Quản lý khóa học, viết blog chuyên môn, chia sẻ tài liệu và phát hành app hoặc gói cài đặt cho người dùng ngay trong một nơi.
@@ -617,7 +632,7 @@ export const Dashboard: React.FC = () => {
                   required
                 />
                 <p className="muted" style={{ fontSize: '0.88rem' }}>
-                  Hiện tại nhận file cài đặt hoặc gói nén định dạng `.exe`, `.rar`, `.zip`.
+                  Hiện tại nhận file cài đặt hoặc gói nén định dạng `.exe`, `.rar`, `.zip`, tối đa 250 MB.
                 </p>
                 {toolFileError ? (
                   <div className="alert alert-error" style={{ marginBottom: 0 }}>
@@ -797,3 +812,4 @@ export const Dashboard: React.FC = () => {
     </div>
   );
 };
+

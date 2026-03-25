@@ -9,7 +9,7 @@ const faqs = [
   },
   {
     question: 'Website đang cung cấp những gì?',
-    answer: 'Hiện tại nền tảng có khóa học, blog giảng viên, thư viện tài liệu và khu vực công cụ hoặc gói hỗ trợ học tập.',
+    answer: 'Hiện tại nền tảng có khóa học, blog chuyên môn, thư viện tài liệu và khu vực công cụ hoặc gói hỗ trợ học tập.',
   },
   {
     question: 'Đăng ký khóa học như thế nào?',
@@ -17,7 +17,7 @@ const faqs = [
   },
   {
     question: 'Tôi có thể đọc blog hoặc tải tài liệu trước khi mua không?',
-    answer: 'Có. Website đã tách riêng blog và thư viện tài liệu để bạn đọc trước nội dung chuyên môn, từ đó đánh giá phong cách giảng dạy và mức độ phù hợp.',
+    answer: 'Có. Website đã tách riêng blog và thư viện tài liệu để bạn đọc trước nội dung chuyên môn, từ đó đánh giá mức độ phù hợp.',
   },
   {
     question: 'Site có nội dung về Revit, ETABS, TCVN và đồ án không?',
@@ -55,7 +55,7 @@ export const FaqPage: React.FC = () => {
       <section className="hero">
         <h1 className="hero-title">Câu hỏi thường gặp</h1>
         <p className="hero-subtitle">
-          Trang này giúp người học mới hiểu nhanh website đang bán gì, hỗ trợ gì và nên bắt đầu từ đâu.
+          Trang này giúp người học mới hiểu nhanh website đang có gì, hỗ trợ gì và nên bắt đầu từ đâu.
         </p>
       </section>
 
