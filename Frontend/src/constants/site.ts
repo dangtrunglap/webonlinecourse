@@ -1,7 +1,7 @@
 export const SITE_URL = 'https://ghtxdbk.com';
 export const SITE_NAME = 'GHTXDBK';
 export const SITE_TITLE = 'GHTXDBK - Góc Học Tập Xây Dựng Bách Khoa';
-export const DEFAULT_OG_IMAGE = `${SITE_URL}/og-default.svg`;
+export const DEFAULT_OG_IMAGE = `${SITE_URL}/asset/GHTXDBK-Icon.png`;
 export const FACEBOOK_URL = 'https://www.facebook.com/civil.engineer.bk/';
 
 export const SITE_DESCRIPTION =

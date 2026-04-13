@@ -741,6 +741,33 @@ select {
   padding: 0.55rem 0.7rem;
 }
 
+.rich-editor-select {
+  min-width: 150px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  padding: 0.55rem 0.72rem;
+  background: #fff;
+}
+
+.rich-editor-color-btn {
+  position: relative;
+}
+
+.rich-editor-color-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 1px;
+  height: 1px;
+}
+
+.rich-editor-color-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.15);
+}
+
 .rich-editor-input {
   min-height: 320px;
   padding: 0.95rem;
@@ -763,3 +790,12 @@ select {
   padding-left: 0.85rem;
   color: var(--muted-foreground);
 }
+
+.course-description img {
+  width: 100%;
+  max-height: 420px;
+  object-fit: cover;
+  border-radius: 14px;
+  margin: 1rem 0;
+}
+

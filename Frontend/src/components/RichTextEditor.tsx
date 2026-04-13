@@ -1,5 +1,5 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Bold, ImagePlus, Italic, Link as LinkIcon, List, ListOrdered, Quote, Redo2, RemoveFormatting, Underline, Undo2 } from 'lucide-react';
+import { Bold, ImagePlus, Italic, Link as LinkIcon, List, ListOrdered, Palette, Quote, Redo2, RemoveFormatting, Underline, Undo2 } from 'lucide-react';
 import { sanitizeBlogHtml } from '../utils/blogHtml';
 
 interface RichTextEditorProps {
@@ -15,11 +15,14 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   value,
   onChange,
   onUploadImage,
-  placeholder = 'Nhập nội dung...',
+  placeholder = 'Nhap noi dung...',
 }) => {
   const editorRef = useRef<HTMLDivElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const colorInputRef = useRef<HTMLInputElement | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [fontFamily, setFontFamily] = useState('Be Vietnam Pro');
+  const [textColor, setTextColor] = useState('#1f2937');
 
   const normalizedValue = useMemo(() => sanitizeBlogHtml(value), [value]);
 
@@ -47,9 +50,21 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   };
 
   const insertLink = () => {
-    const url = window.prompt('Nhập đường dẫn muốn chèn');
+    const url = window.prompt('Nhap duong dan muon chen');
     if (!url) return;
     runCommand('createLink', url);
+  };
+
+  const applyFontFamily = (nextFontFamily: string) => {
+    setFontFamily(nextFontFamily);
+    runCommand('styleWithCSS', 'true');
+    runCommand('fontName', nextFontFamily);
+  };
+
+  const applyTextColor = (nextColor: string) => {
+    setTextColor(nextColor);
+    runCommand('styleWithCSS', 'true');
+    runCommand('foreColor', nextColor);
   };
 
   const handleImagePick = async (file: File | null) => {
@@ -72,46 +87,67 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       <label>{label}</label>
       <div className="rich-editor-shell">
         <div className="rich-editor-toolbar">
-          <button type="button" className="btn btn-secondary rich-editor-btn" onClick={() => runCommand('bold')} title="In đậm">
+          <select
+            className="rich-editor-select"
+            value={fontFamily}
+            onChange={(e) => applyFontFamily(e.target.value)}
+            title="Kieu chu"
+          >
+            <option value="Be Vietnam Pro">Be Vietnam Pro</option>
+            <option value="Montserrat">Montserrat</option>
+            <option value="Georgia">Georgia</option>
+            <option value="Times New Roman">Times New Roman</option>
+            <option value="Courier New">Courier New</option>
+          </select>
+          <button
+            type="button"
+            className="btn btn-secondary rich-editor-btn rich-editor-color-btn"
+            onClick={() => colorInputRef.current?.click()}
+            title="Mau chu"
+          >
+            <Palette size={16} />
+            <span className="rich-editor-color-swatch" style={{ backgroundColor: textColor }} />
+          </button>
+          <button type="button" className="btn btn-secondary rich-editor-btn" onClick={() => runCommand('bold')} title="In dam">
             <Bold size={16} />
           </button>
-          <button type="button" className="btn btn-secondary rich-editor-btn" onClick={() => runCommand('italic')} title="In nghiêng">
+          <button type="button" className="btn btn-secondary rich-editor-btn" onClick={() => runCommand('italic')} title="In nghieng">
             <Italic size={16} />
           </button>
-          <button type="button" className="btn btn-secondary rich-editor-btn" onClick={() => runCommand('underline')} title="Gạch chân">
+          <button type="button" className="btn btn-secondary rich-editor-btn" onClick={() => runCommand('underline')} title="Gach chan">
             <Underline size={16} />
           </button>
-          <button type="button" className="btn btn-secondary rich-editor-btn" onClick={() => applyBlock('H2')} title="Tiêu đề lớn">
+          <button type="button" className="btn btn-secondary rich-editor-btn" onClick={() => applyBlock('H2')} title="Tieu de lon">
             H2
           </button>
-          <button type="button" className="btn btn-secondary rich-editor-btn" onClick={() => applyBlock('H3')} title="Tiêu đề vừa">
+          <button type="button" className="btn btn-secondary rich-editor-btn" onClick={() => applyBlock('H3')} title="Tieu de vua">
             H3
           </button>
-          <button type="button" className="btn btn-secondary rich-editor-btn" onClick={() => applyBlock('P')} title="Đoạn văn">
+          <button type="button" className="btn btn-secondary rich-editor-btn" onClick={() => applyBlock('P')} title="Doan van">
             P
           </button>
-          <button type="button" className="btn btn-secondary rich-editor-btn" onClick={() => runCommand('insertUnorderedList')} title="Danh sách chấm">
+          <button type="button" className="btn btn-secondary rich-editor-btn" onClick={() => runCommand('insertUnorderedList')} title="Danh sach cham">
             <List size={16} />
           </button>
-          <button type="button" className="btn btn-secondary rich-editor-btn" onClick={() => runCommand('insertOrderedList')} title="Danh sách số">
+          <button type="button" className="btn btn-secondary rich-editor-btn" onClick={() => runCommand('insertOrderedList')} title="Danh sach so">
             <ListOrdered size={16} />
           </button>
-          <button type="button" className="btn btn-secondary rich-editor-btn" onClick={() => applyBlock('BLOCKQUOTE')} title="Trích dẫn">
+          <button type="button" className="btn btn-secondary rich-editor-btn" onClick={() => applyBlock('BLOCKQUOTE')} title="Trich dan">
             <Quote size={16} />
           </button>
-          <button type="button" className="btn btn-secondary rich-editor-btn" onClick={insertLink} title="Chèn liên kết">
+          <button type="button" className="btn btn-secondary rich-editor-btn" onClick={insertLink} title="Chen lien ket">
             <LinkIcon size={16} />
           </button>
-          <button type="button" className="btn btn-secondary rich-editor-btn" onClick={() => imageInputRef.current?.click()} title="Chèn ảnh" disabled={isUploading}>
+          <button type="button" className="btn btn-secondary rich-editor-btn" onClick={() => imageInputRef.current?.click()} title="Chen anh" disabled={isUploading}>
             <ImagePlus size={16} />
           </button>
-          <button type="button" className="btn btn-secondary rich-editor-btn" onClick={() => runCommand('removeFormat')} title="Xóa định dạng">
+          <button type="button" className="btn btn-secondary rich-editor-btn" onClick={() => runCommand('removeFormat')} title="Xoa dinh dang">
             <RemoveFormatting size={16} />
           </button>
-          <button type="button" className="btn btn-secondary rich-editor-btn" onClick={() => runCommand('undo')} title="Hoàn tác">
+          <button type="button" className="btn btn-secondary rich-editor-btn" onClick={() => runCommand('undo')} title="Hoan tac">
             <Undo2 size={16} />
           </button>
-          <button type="button" className="btn btn-secondary rich-editor-btn" onClick={() => runCommand('redo')} title="Làm lại">
+          <button type="button" className="btn btn-secondary rich-editor-btn" onClick={() => runCommand('redo')} title="Lam lai">
             <Redo2 size={16} />
           </button>
         </div>
@@ -121,11 +157,20 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           className="rich-editor-input"
           contentEditable
           suppressContentEditableWarning
-          data-placeholder={isUploading ? 'Đang tải ảnh...' : placeholder}
+          data-placeholder={isUploading ? 'Dang tai anh...' : placeholder}
           onInput={emitChange}
           onBlur={emitChange}
         />
       </div>
+
+      <input
+        ref={colorInputRef}
+        type="color"
+        value={textColor}
+        className="rich-editor-color-input"
+        onChange={(e) => applyTextColor(e.target.value)}
+        aria-label="Chon mau chu"
+      />
 
       <input
         ref={imageInputRef}
@@ -139,3 +184,6 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     </div>
   );
 };
+
+
+

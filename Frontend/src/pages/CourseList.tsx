@@ -15,6 +15,7 @@ import api from '../services/api';
 import { formatVnd } from '../utils/currency';
 import { getMediaUrl } from '../utils/media';
 import type { BlogPost, ResourceFile } from '../types/content';
+import { extractPlainTextFromBlogHtml } from '../utils/blogHtml';
 import {
   FACEBOOK_URL,
   SITE_DESCRIPTION,
@@ -298,7 +299,7 @@ export const CourseList: React.FC = () => {
                     </div>
                     <div className="course-content">
                       <h3 className="line-clamp-2">{course.title}</h3>
-                      <p className="muted line-clamp-3 course-description-preview">{course.description}</p>
+                      <p className="muted line-clamp-3 course-description-preview">{extractPlainTextFromBlogHtml(course.description)}</p>
                       <div className="muted" style={{ fontSize: '0.9rem' }}>Người hướng dẫn: {course.instructorName}</div>
                       <button type="button" className="btn btn-secondary" style={{ width: '100%' }}>
                         Xem chi tiết
@@ -336,3 +337,4 @@ export const CourseList: React.FC = () => {
     </div>
   );
 };
+

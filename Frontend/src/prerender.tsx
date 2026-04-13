@@ -3,6 +3,7 @@ import { StaticRouter } from 'react-router';
 import { AuthProvider } from './contexts/AuthContext';
 import { AppRoutes } from './AppRoutes';
 import { DEFAULT_OG_IMAGE, SITE_DESCRIPTION, SITE_NAME, SITE_URL } from './constants/site';
+import { extractPlainTextFromBlogHtml } from './utils/blogHtml';
 
 type HeadMetadata = {
   title: string;
@@ -81,7 +82,7 @@ const loadDynamicMetadata = async (url: string): Promise<HeadMetadata | null> =>
 
     return {
       title: `${course.title} | ${SITE_NAME}`,
-      description: trimText(course.description),
+      description: trimText(extractPlainTextFromBlogHtml(course.description)),
       canonical: `${SITE_URL}/courses/${course.id}`,
       image: toAbsoluteMediaUrl(course.thumbnailUrl) ?? DEFAULT_OG_IMAGE,
     };
@@ -138,3 +139,4 @@ export async function prerender({ url }: { url: string }) {
     },
   };
 }
+

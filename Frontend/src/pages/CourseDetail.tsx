@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { CheckCircle2, FileText, PenSquare, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,6 +8,7 @@ import { formatVnd } from '../utils/currency';
 import { getMediaUrl } from '../utils/media';
 import type { BlogPost, ResourceFile } from '../types/content';
 import { FACEBOOK_URL, SITE_NAME, SITE_URL, defaultOrganizationSchema } from '../constants/site';
+import { extractPlainTextFromBlogHtml, sanitizeBlogHtml } from '../utils/blogHtml';
 
 interface Course {
   id: string;
@@ -81,6 +82,8 @@ export const CourseDetail: React.FC = () => {
   };
 
   const image = getMediaUrl(course?.thumbnailUrl) ?? undefined;
+  const safeDescriptionHtml = useMemo(() => sanitizeBlogHtml(course?.description), [course?.description]);
+  const descriptionText = useMemo(() => extractPlainTextFromBlogHtml(course?.description), [course?.description]);
   const benefitPoints = useMemo(() => {
     if (!course) return [];
 
@@ -103,7 +106,7 @@ export const CourseDetail: React.FC = () => {
     <div className="container reveal" style={{ display: 'grid', gap: '1.5rem' }}>
       <Seo
         title={`${course.title} | ${SITE_NAME}`}
-        description={course.description}
+        description={descriptionText}
         path={`/courses/${course.id}`}
         image={image}
         type="product"
@@ -113,7 +116,7 @@ export const CourseDetail: React.FC = () => {
             '@context': 'https://schema.org',
             '@type': 'Course',
             name: course.title,
-            description: course.description,
+            description: descriptionText,
             provider: {
               '@type': 'Organization',
               name: SITE_NAME,
@@ -151,7 +154,7 @@ export const CourseDetail: React.FC = () => {
       <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', alignItems: 'start' }}>
         <article className="card" style={{ padding: '1.4rem' }}>
           <h1 style={{ fontSize: '2rem', marginBottom: '0.85rem' }}>{course.title}</h1>
-          <p className="muted course-description" style={{ marginBottom: '1rem' }}>{course.description}</p>
+          <div className="muted course-description blog-rendered" style={{ marginBottom: '1rem' }} dangerouslySetInnerHTML={{ __html: safeDescriptionHtml }} />
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', marginBottom: '1.2rem' }}>
             <User size={16} /> <span>Người hướng dẫn: {course.instructorName}</span>
           </div>
@@ -227,3 +230,4 @@ export const CourseDetail: React.FC = () => {
     </div>
   );
 };
+

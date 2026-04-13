@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BookOpen, LayoutDashboard, Library, LogOut, Newspaper, User, Wrench } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import brandLogo from '../../asset/Logo_GHTXDBK.jpg';
+import brandLogo from '../../asset/GHTXDBK-Icon.png';
 
 export const Navbar: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();

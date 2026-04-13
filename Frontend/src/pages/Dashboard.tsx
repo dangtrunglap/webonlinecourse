@@ -176,7 +176,7 @@ export const Dashboard: React.FC = () => {
 
     return formData;
   };
-  const uploadInlineBlogImage = async (file: File) => {
+  const uploadInlineEditorImage = async (file: File) => {
     const lowerName = file.name.toLowerCase();
     const isAllowed = allowedBlogImageExtensions.some((extension) => lowerName.endsWith(extension));
     if (!isAllowed) {
@@ -202,7 +202,7 @@ export const Dashboard: React.FC = () => {
     resetMessages();
 
     try {
-      await api.post('/courses', { title, description, price: Number(price) || 0 });
+      await api.post('/courses', { title, description: sanitizeBlogHtml(description), price: Number(price) || 0 });
       setTitle('');
       setDescription('');
       setPrice('0');
@@ -460,10 +460,13 @@ export const Dashboard: React.FC = () => {
               <label>Tiêu đề</label>
               <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required />
             </div>
-            <div className="field">
-              <label>Mô tả</label>
-              <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} required />
-            </div>
+            <RichTextEditor
+              label="Mô tả"
+              value={description}
+              onChange={setDescription}
+              onUploadImage={uploadInlineEditorImage}
+              placeholder="Mô tả khóa học, đổi kiểu chữ, màu chữ và chèn ảnh minh họa như phần blog..."
+            />
             <div className="field">
               <label>Giá (VND)</label>
               <input type="number" step="1000" min="0" value={price} onChange={(e) => setPrice(e.target.value)} required />
@@ -496,7 +499,7 @@ export const Dashboard: React.FC = () => {
               label="Nội dung"
               value={blogContent}
               onChange={setBlogContent}
-              onUploadImage={uploadInlineBlogImage}
+              onUploadImage={uploadInlineEditorImage}
               placeholder="Viết bài blog, chèn ảnh giữa nội dung, thêm tiêu đề phụ, danh sách..."
             />
 
@@ -812,4 +815,7 @@ export const Dashboard: React.FC = () => {
     </div>
   );
 };
+
+
+
 
