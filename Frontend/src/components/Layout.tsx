@@ -15,7 +15,7 @@ export const Layout: React.FC = () => {
           <div className="footer-grid">
             <div>
               <h4>GHTXDBK</h4>
-              <p>Nền tảng khóa học, tài liệu, blog và công cụ cho sinh viên xây dựng.</p>
+              <p>Nền tảng khóa học, blog và công cụ cho sinh viên xây dựng.</p>
             </div>
             <div>
               <h5>Điều hướng</h5>

@@ -26,8 +26,8 @@ const values = [
   },
   {
     icon: BookOpenCheck,
-    title: 'Bám sát tài liệu và thực hành',
-    description: 'Khóa học được đi kèm bài viết hướng dẫn, tài liệu tham khảo và công cụ hỗ trợ để người học không bị đứt mạch giữa lý thuyết và thực hành.',
+    title: 'Bám sát thực hành',
+    description: 'Khóa học được đi kèm bài viết hướng dẫn và công cụ hỗ trợ để người học không bị đứt mạch giữa lý thuyết và thực hành.',
   },
   {
     icon: Award,
@@ -103,7 +103,7 @@ export const AboutPage: React.FC = () => {
       <section className="hero">
         <h1 className="hero-title">GHTXDBK là gì?</h1>
         <p className="hero-subtitle">
-          GHTXDBK là nền tảng học tập xây dựng tập trung vào khóa học, tài liệu, bài viết hướng dẫn và công cụ hỗ trợ
+          GHTXDBK là nền tảng học tập xây dựng tập trung vào khóa học, bài viết hướng dẫn và công cụ hỗ trợ
           dành cho sinh viên, người làm đồ án và kỹ sư trẻ cần một lộ trình học thực tế hơn.
         </p>
         <div className="hero-actions">
@@ -175,7 +175,7 @@ export const AboutPage: React.FC = () => {
               <Users size={18} /> Dành cho ai
             </div>
             <p className="muted">
-              Sinh viên xây dựng, người đang làm đồ án, người mới học phần mềm chuyên ngành và kỹ sư trẻ cần tài liệu, quy trình và ví dụ dễ áp dụng.
+              Sinh viên xây dựng, người đang làm đồ án, người mới học phần mềm chuyên ngành và kỹ sư trẻ cần quy trình, ví dụ dễ áp dụng.
             </p>
           </article>
           <article className="card" style={{ padding: '1.2rem' }}>
@@ -183,7 +183,7 @@ export const AboutPage: React.FC = () => {
               <BookOpenCheck size={18} /> Đang có gì trên site
             </div>
             <p className="muted">
-              Khóa học, bài viết hướng dẫn, thư viện tài liệu và các gói công cụ hoặc file hỗ trợ học tập theo từng nhóm chủ đề chuyên ngành.
+              Khóa học, bài viết hướng dẫn và các gói công cụ hoặc file hỗ trợ học tập theo từng nhóm chủ đề chuyên ngành.
             </p>
           </article>
           <article className="card" style={{ padding: '1.2rem' }}>
@@ -191,7 +191,7 @@ export const AboutPage: React.FC = () => {
               <Award size={18} /> Cam kết nội dung
             </div>
             <p className="muted">
-              Nội dung trên website được xây theo hướng học để ứng dụng, có liên kết nội bộ giữa khóa học, blog và tài liệu để giảm cảm giác học rời rạc.
+              Nội dung trên website được xây theo hướng học để ứng dụng, có liên kết nội bộ giữa khóa học, blog và công cụ để giảm cảm giác học rời rạc.
             </p>
           </article>
         </div>

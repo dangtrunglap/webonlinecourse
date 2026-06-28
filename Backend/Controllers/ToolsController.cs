@@ -68,7 +68,12 @@ public class ToolsController : ControllerBase
                 FileSize = file.Length
             }, userId, userName);
 
-            return Ok(created);
+            foreach (var oldFileUrl in created.ReplacedFileUrls)
+            {
+                DeleteUploadByUrl(oldFileUrl);
+            }
+
+            return Ok(created.Release);
         }
         catch (InvalidOperationException ex)
         {
@@ -90,13 +95,7 @@ public class ToolsController : ControllerBase
         if (!result.Deleted)
             return NotFound();
 
-        if (!string.IsNullOrWhiteSpace(result.FileUrl))
-        {
-            var relativePath = result.FileUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
-            var physicalPath = Path.Combine(_environment.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"), relativePath);
-            if (System.IO.File.Exists(physicalPath))
-                System.IO.File.Delete(physicalPath);
-        }
+        DeleteUploadByUrl(result.FileUrl);
 
         return NoContent();
     }
@@ -106,5 +105,16 @@ public class ToolsController : ControllerBase
         var invalidChars = Path.GetInvalidFileNameChars();
         var cleaned = new string(fileName.Select(ch => invalidChars.Contains(ch) ? '-' : ch).ToArray()).Trim();
         return string.IsNullOrWhiteSpace(cleaned) ? "cong-cu" : cleaned;
+    }
+
+    private void DeleteUploadByUrl(string? fileUrl)
+    {
+        if (string.IsNullOrWhiteSpace(fileUrl))
+            return;
+
+        var relativePath = fileUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+        var physicalPath = Path.Combine(_environment.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"), relativePath);
+        if (System.IO.File.Exists(physicalPath))
+            System.IO.File.Delete(physicalPath);
     }
 }

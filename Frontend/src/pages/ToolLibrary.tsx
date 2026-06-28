@@ -116,7 +116,7 @@ export const ToolLibrary: React.FC = () => {
                       <p className="muted">Version {latestRelease.version} • Cập nhật {formatReleaseDate(latestRelease.publishedAt)}</p>
                     </div>
                   </div>
-                  <a href={getMediaUrl(latestRelease.fileUrl) ?? '#'} target="_blank" rel="noreferrer" className="btn btn-primary">
+                  <a href={getMediaUrl(latestRelease.downloadFileUrl ?? latestRelease.fileUrl) ?? '#'} target="_blank" rel="noreferrer" className="btn btn-primary">
                     <Download size={16} /> Tải bản mới nhất
                   </a>
                 </div>
@@ -130,8 +130,6 @@ export const ToolLibrary: React.FC = () => {
 
             <div className="grid grid-3">
               {filteredReleases.map((release) => {
-                const fileUrl = getMediaUrl(release.fileUrl);
-
                 return (
                   <article key={release.id} className="card" style={{ padding: '1.1rem', display: 'grid', gap: '0.9rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.8rem', alignItems: 'start' }}>
@@ -155,12 +153,6 @@ export const ToolLibrary: React.FC = () => {
                       <strong>Ghi chú cập nhật</strong>
                       <div className="release-notes">{release.releaseNotes}</div>
                     </div>
-
-                    {fileUrl ? (
-                      <a href={fileUrl} target="_blank" rel="noreferrer" className="btn btn-primary" style={{ width: '100%' }}>
-                        <Download size={16} /> Tải file
-                      </a>
-                    ) : null}
                   </article>
                 );
               })}

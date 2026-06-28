@@ -14,7 +14,6 @@ export default defineConfig(async () => ({
       additionalPrerenderRoutes: [
         '/',
         '/blog',
-        '/resources',
         '/tools',
         '/about',
         '/contact',

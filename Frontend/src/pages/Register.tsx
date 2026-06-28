@@ -38,7 +38,7 @@ export const Register: React.FC = () => {
       <div className="card form-panel">
         <aside className="form-showcase">
           <h2>Tạo tài khoản mới</h2>
-          <p>Bắt đầu hành trình học tập đúng lộ trình, nhận tài liệu và hỗ trợ trực tiếp từ cộng đồng GHTXDBK.</p>
+          <p>Bắt đầu hành trình học tập đúng lộ trình và nhận hỗ trợ trực tiếp từ cộng đồng GHTXDBK.</p>
         </aside>
 
         <section className="form-body">

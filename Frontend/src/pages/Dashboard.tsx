@@ -1,6 +1,6 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FileArchive, FileText, PenSquare, Plus, ShieldCheck, Trash, Upload } from 'lucide-react';
+import { ArrowLeft, ChevronRight, FileArchive, FileText, PenSquare, Plus, ShieldCheck, Trash, Upload } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { RichTextEditor } from '../components/RichTextEditor';
 import api from '../services/api';
@@ -12,13 +12,16 @@ import { getMediaUrl } from '../utils/media';
 interface Course {
   id: string;
   title: string;
+  description: string;
   price: number;
+  instructorId?: string;
   instructorName?: string;
   thumbnailUrl?: string | null;
 }
 
 const allowedToolExtensions = ['.exe', '.rar', '.zip'];
 const allowedBlogImageExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
+type ComposerKey = 'course' | 'blog' | 'resource' | 'tool';
 
 const formatBytes = (value: number) => {
   if (!value) return '0 B';
@@ -34,6 +37,22 @@ const formatReleaseDate = (value: string) => new Date(value).toLocaleDateString(
   year: 'numeric',
 });
 
+const getApiErrorMessage = (err: any, fallback: string) => {
+  const data = err.response?.data;
+
+  if (typeof data === 'string' && data.trim()) return data;
+  if (data?.message) return data.message;
+  if (data?.Message) return data.Message;
+
+  const errors = data?.errors;
+  if (errors && typeof errors === 'object') {
+    const firstError = Object.values(errors).flat().find((value) => typeof value === 'string');
+    if (firstError) return firstError;
+  }
+
+  return err.message || fallback;
+};
+
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
@@ -43,10 +62,12 @@ export const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [activeComposer, setActiveComposer] = useState<ComposerKey | null>(null);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [price, setPrice] = useState('0');
+  const [price, setPrice] = useState('');
+  const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
 
   const [editingBlogId, setEditingBlogId] = useState<string | null>(null);
   const [blogTitle, setBlogTitle] = useState('');
@@ -145,6 +166,13 @@ export const Dashboard: React.FC = () => {
     setToolFileError('');
   };
 
+  const resetCourseForm = () => {
+    setEditingCourseId(null);
+    setTitle('');
+    setDescription('');
+    setPrice('');
+  };
+
   const resetBlogForm = () => {
     setEditingBlogId(null);
     setBlogTitle('');
@@ -197,20 +225,51 @@ export const Dashboard: React.FC = () => {
     return getMediaUrl(url) ?? url;
   };
 
-  const handleCreateCourse = async (e: React.FormEvent) => {
+  const handleSubmitCourse = async (e: React.FormEvent) => {
     e.preventDefault();
     resetMessages();
 
-    try {
-      await api.post('/courses', { title, description: sanitizeBlogHtml(description), price: Number(price) || 0 });
-      setTitle('');
-      setDescription('');
-      setPrice('0');
-      setSuccessMessage('Tạo khóa học thành công.');
-      void fetchDashboardData();
-    } catch {
-      setErrorMessage('Tạo khóa học thất bại.');
+    const parsedPrice = Number(price);
+    if (!Number.isFinite(parsedPrice) || parsedPrice < 1000) {
+      setErrorMessage('Vui lòng nhập giá khóa học tối thiểu 1.000 VND.');
+      return;
     }
+
+    try {
+      const payload = { title, description: sanitizeBlogHtml(description), price: parsedPrice };
+
+      if (editingCourseId) {
+        try {
+          await api.put(`/courses/${editingCourseId}`, payload);
+        } catch (updateError: any) {
+          if (updateError?.response?.status !== 405) {
+            throw updateError;
+          }
+
+          await api.post(`/courses/${editingCourseId}/update`, payload);
+        }
+        setSuccessMessage('Cập nhật khóa học thành công.');
+      } else {
+        await api.post('/courses', payload);
+        setSuccessMessage('Tạo khóa học thành công.');
+      }
+
+      resetCourseForm();
+      setActiveComposer(null);
+      void fetchDashboardData();
+    } catch (err: any) {
+      setErrorMessage(getApiErrorMessage(err, editingCourseId ? 'Cập nhật khóa học thất bại.' : 'Tạo khóa học thất bại.'));
+    }
+  };
+
+  const handleEditCourse = (course: Course) => {
+    resetMessages();
+    setEditingCourseId(course.id);
+    setTitle(course.title);
+    setDescription(course.description ?? '');
+    setPrice(String(course.price ?? ''));
+    setActiveComposer('course');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSubmitBlog = async (e: React.FormEvent) => {
@@ -244,6 +303,7 @@ export const Dashboard: React.FC = () => {
       }
 
       resetBlogForm();
+      setActiveComposer(null);
       void fetchDashboardData();
     } catch (err: any) {
       setErrorMessage(err.response?.data?.message || err.response?.data?.Message || err.message || 'Lưu blog thất bại.');
@@ -262,6 +322,7 @@ export const Dashboard: React.FC = () => {
     setBlogCoverInputKey((value) => value + 1);
     setBlogExistingCoverUrl(getMediaUrl(blog.coverImageUrl) ?? null);
     setRemoveBlogCover(false);
+    setActiveComposer('blog');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -311,6 +372,7 @@ export const Dashboard: React.FC = () => {
       setResourceFile(null);
       setResourceInputKey((value) => value + 1);
       setSuccessMessage('Chia sẻ tài liệu thành công.');
+      setActiveComposer(null);
       void fetchDashboardData();
     } catch (err: any) {
       setErrorMessage(err.response?.data?.message || err.response?.data?.Message || 'Tải tài liệu thất bại.');
@@ -353,6 +415,7 @@ export const Dashboard: React.FC = () => {
       setToolMarkAsLatest(true);
       setToolInputKey((value) => value + 1);
       setSuccessMessage('Đã tải app lên thành công.');
+      setActiveComposer(null);
       void fetchDashboardData();
     } catch (err: any) {
       const status = err.response?.status;
@@ -369,6 +432,9 @@ export const Dashboard: React.FC = () => {
 
     try {
       await api.delete(`/courses/${id}`);
+      if (editingCourseId === id) {
+        resetCourseForm();
+      }
       setSuccessMessage('Đã xóa khóa học.');
       void fetchDashboardData();
     } catch {
@@ -436,26 +502,49 @@ export const Dashboard: React.FC = () => {
   };
 
   const blogPreviewImage = !removeBlogCover ? (blogCoverPreview || blogExistingCoverUrl) : null;
-  return (
-    <div className="container reveal" style={{ display: 'grid', gap: '1.5rem' }}>
-      {successMessage ? <div className="alert alert-success">{successMessage}</div> : null}
-      {errorMessage ? <div className="alert alert-error">{errorMessage}</div> : null}
+  const composerItems = [
+    {
+      key: 'course' as const,
+      icon: <Plus size={20} />,
+      title: editingCourseId ? 'Chỉnh sửa khóa học' : 'Tạo khóa học',
+      description: editingCourseId ? 'Cập nhật mô tả, tiêu đề và giá của khóa học.' : 'Soạn mô tả khóa học, đặt giá và xuất bản khóa mới.',
+      meta: `${filteredCourses.length} khóa học`,
+    },
+    {
+      key: 'blog' as const,
+      icon: <PenSquare size={20} />,
+      title: editingBlogId ? 'Chỉnh sửa blog' : 'Viết blog',
+      description: 'Mở trình soạn thảo bài viết toàn trang, chèn ảnh và định dạng nội dung.',
+      meta: `${filteredBlogs.length} bài viết`,
+    },
+    {
+      key: 'resource' as const,
+      icon: <FileText size={20} />,
+      title: 'Chia sẻ tài liệu',
+      description: 'Tải tài liệu lên và gắn với khóa học khi cần.',
+      meta: `${filteredResources.length} tài liệu`,
+    },
+    ...(canManageTools ? [{
+      key: 'tool' as const,
+      icon: <FileArchive size={20} />,
+      title: 'Phát hành công cụ',
+      description: 'Upload app, gói cài đặt hoặc bản nén cho người dùng tải về.',
+      meta: `${filteredToolReleases.length} bản phát hành`,
+    }] : []),
+  ];
 
-      <section className="hero" style={{ padding: '2.2rem 1.5rem' }}>
-        <h1 className="hero-title" style={{ fontSize: 'clamp(1.7rem, 4vw, 2.4rem)' }}>
-          {user?.role === 'Admin' ? 'Bảng điều khiển quản trị' : 'Bảng điều khiển nội dung'}
-        </h1>
-        <p className="hero-subtitle">
-          Quản lý khóa học, viết blog chuyên môn, chia sẻ tài liệu và phát hành app hoặc gói cài đặt cho người dùng ngay trong một nơi.
-        </p>
-      </section>
+  const activeComposerItem = composerItems.find((item) => item.key === activeComposer);
 
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', alignItems: 'start' }}>
-        <section className="card" style={{ padding: '1rem' }}>
-          <h2 style={{ fontSize: '1.2rem', marginBottom: '0.9rem', display: 'inline-flex', gap: '0.4rem', alignItems: 'center' }}>
-            <Plus size={18} /> Tạo khóa học
-          </h2>
-          <form onSubmit={handleCreateCourse} className="form-grid">
+  const renderComposerContent = () => {
+    switch (activeComposer) {
+      case 'course':
+        return (
+          <form onSubmit={handleSubmitCourse} className="form-grid dashboard-composer-form">
+            <div className="dashboard-form-header">
+              {editingCourseId ? (
+                <button type="button" className="btn btn-secondary" onClick={resetCourseForm}>Tạo khóa mới</button>
+              ) : null}
+            </div>
             <div className="field">
               <label>Tiêu đề</label>
               <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required />
@@ -467,25 +556,31 @@ export const Dashboard: React.FC = () => {
               onUploadImage={uploadInlineEditorImage}
               placeholder="Mô tả khóa học, đổi kiểu chữ, màu chữ và chèn ảnh minh họa như phần blog..."
             />
-            <div className="field">
+            <div className="field dashboard-price-field">
               <label>Giá (VND)</label>
-              <input type="number" step="1000" min="0" value={price} onChange={(e) => setPrice(e.target.value)} required />
+              <input type="number" step="1000" min="1000" value={price} onChange={(e) => setPrice(e.target.value)} required />
             </div>
-            <button type="submit" className="btn btn-primary">Tạo khóa học</button>
+            <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+              <button type="submit" className="btn btn-primary dashboard-submit-btn">
+                {editingCourseId ? 'Lưu chỉnh sửa' : 'Tạo khóa học'}
+              </button>
+              {editingCourseId ? (
+                <button type="button" className="btn btn-secondary" onClick={() => {
+                  resetCourseForm();
+                  setActiveComposer(null);
+                }}>Hủy chỉnh sửa</button>
+              ) : null}
+            </div>
           </form>
-        </section>
-
-        <section className="card" style={{ padding: '1rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', alignItems: 'center', marginBottom: '0.9rem', flexWrap: 'wrap' }}>
-            <h2 style={{ fontSize: '1.2rem', display: 'inline-flex', gap: '0.4rem', alignItems: 'center', margin: 0 }}>
-              <PenSquare size={18} /> {editingBlogId ? 'Chỉnh sửa blog' : 'Viết blog'}
-            </h2>
-            {editingBlogId ? (
-              <button type="button" className="btn btn-secondary" onClick={resetBlogForm}>Tạo bài mới</button>
-            ) : null}
-          </div>
-
-          <form onSubmit={handleSubmitBlog} className="form-grid">
+        );
+      case 'blog':
+        return (
+          <form onSubmit={handleSubmitBlog} className="form-grid dashboard-composer-form">
+            <div className="dashboard-form-header">
+              {editingBlogId ? (
+                <button type="button" className="btn btn-secondary" onClick={resetBlogForm}>Tạo bài mới</button>
+              ) : null}
+            </div>
             <div className="field">
               <label>Tiêu đề bài viết</label>
               <input type="text" value={blogTitle} onChange={(e) => setBlogTitle(e.target.value)} required />
@@ -503,26 +598,28 @@ export const Dashboard: React.FC = () => {
               placeholder="Viết bài blog, chèn ảnh giữa nội dung, thêm tiêu đề phụ, danh sách..."
             />
 
-            <div className="field">
-              <label>Gắn với khóa học (tùy chọn)</label>
-              <select value={blogCourseId} onChange={(e) => setBlogCourseId(e.target.value)}>
-                <option value="">Bài viết dùng chung</option>
-                {filteredCourses.map((course) => (
-                  <option key={course.id} value={course.id}>{course.title}</option>
-                ))}
-              </select>
-            </div>
-            <div className="field">
-              <label>Ảnh bìa blog</label>
-              <input
-                key={blogCoverInputKey}
-                type="file"
-                accept=".jpg,.jpeg,.png,.webp"
-                onChange={(e) => handleBlogCoverChange(e.target.files?.[0] ?? null)}
-              />
-              <p className="muted" style={{ fontSize: '0.88rem' }}>
-                Hỗ trợ ảnh `.jpg`, `.jpeg`, `.png`, `.webp`. Bạn có thể thay ảnh cũ ngay cả khi bài đã public.
-              </p>
+            <div className="dashboard-form-grid-2">
+              <div className="field">
+                <label>Gắn với khóa học (tùy chọn)</label>
+                <select value={blogCourseId} onChange={(e) => setBlogCourseId(e.target.value)}>
+                  <option value="">Bài viết dùng chung</option>
+                  {filteredCourses.map((course) => (
+                    <option key={course.id} value={course.id}>{course.title}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="field">
+                <label>Ảnh bìa blog</label>
+                <input
+                  key={blogCoverInputKey}
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.webp"
+                  onChange={(e) => handleBlogCoverChange(e.target.files?.[0] ?? null)}
+                />
+                <p className="muted" style={{ fontSize: '0.88rem' }}>
+                  Hỗ trợ ảnh `.jpg`, `.jpeg`, `.png`, `.webp`. Bạn có thể thay ảnh cũ ngay cả khi bài đã public.
+                </p>
+              </div>
             </div>
 
             {blogPreviewImage ? (
@@ -531,7 +628,7 @@ export const Dashboard: React.FC = () => {
                 <img
                   src={blogPreviewImage}
                   alt="Ảnh bìa blog"
-                  style={{ width: '100%', maxHeight: '220px', objectFit: 'cover', borderRadius: '14px', border: '1px solid var(--border)' }}
+                  style={{ width: '100%', maxHeight: '320px', objectFit: 'cover', borderRadius: '14px', border: '1px solid var(--border)' }}
                 />
               </div>
             ) : null}
@@ -561,43 +658,41 @@ export const Dashboard: React.FC = () => {
               ) : null}
             </div>
           </form>
-        </section>
-        <section className="card" style={{ padding: '1rem' }}>
-          <h2 style={{ fontSize: '1.2rem', marginBottom: '0.9rem', display: 'inline-flex', gap: '0.4rem', alignItems: 'center' }}>
-            <FileText size={18} /> Chia sẻ tài liệu
-          </h2>
-          <form onSubmit={handleCreateResource} className="form-grid">
+        );
+      case 'resource':
+        return (
+          <form onSubmit={handleCreateResource} className="form-grid dashboard-composer-form">
             <div className="field">
               <label>Tên tài liệu</label>
               <input type="text" value={resourceTitle} onChange={(e) => setResourceTitle(e.target.value)} required />
             </div>
             <div className="field">
               <label>Mô tả ngắn</label>
-              <textarea rows={3} value={resourceDescription} onChange={(e) => setResourceDescription(e.target.value)} required />
+              <textarea rows={4} value={resourceDescription} onChange={(e) => setResourceDescription(e.target.value)} required />
             </div>
-            <div className="field">
-              <label>Gắn với khóa học (tùy chọn)</label>
-              <select value={resourceCourseId} onChange={(e) => setResourceCourseId(e.target.value)}>
-                <option value="">Tài liệu dùng chung</option>
-                {filteredCourses.map((course) => (
-                  <option key={course.id} value={course.id}>{course.title}</option>
-                ))}
-              </select>
+            <div className="dashboard-form-grid-2">
+              <div className="field">
+                <label>Gắn với khóa học (tùy chọn)</label>
+                <select value={resourceCourseId} onChange={(e) => setResourceCourseId(e.target.value)}>
+                  <option value="">Tài liệu dùng chung</option>
+                  {filteredCourses.map((course) => (
+                    <option key={course.id} value={course.id}>{course.title}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="field">
+                <label>Chọn file</label>
+                <input key={resourceInputKey} type="file" onChange={(e) => setResourceFile(e.target.files?.[0] ?? null)} required />
+              </div>
             </div>
-            <div className="field">
-              <label>Chọn file</label>
-              <input key={resourceInputKey} type="file" onChange={(e) => setResourceFile(e.target.files?.[0] ?? null)} required />
-            </div>
-            <button type="submit" className="btn btn-primary">Tải lên tài liệu</button>
+            <button type="submit" className="btn btn-primary dashboard-submit-btn">Tải lên tài liệu</button>
           </form>
-        </section>
-
-        {canManageTools ? (
-          <section className="card" style={{ padding: '1rem' }}>
-            <h2 style={{ fontSize: '1.2rem', marginBottom: '0.9rem', display: 'inline-flex', gap: '0.4rem', alignItems: 'center' }}>
-              <FileArchive size={18} /> Phát hành công cụ
-            </h2>
-            <form onSubmit={handleCreateToolRelease} className="form-grid">
+        );
+      case 'tool':
+        if (!canManageTools) return null;
+        return (
+          <form onSubmit={handleCreateToolRelease} className="form-grid dashboard-composer-form">
+            <div className="dashboard-form-grid-2">
               <div className="field">
                 <label>Tên ứng dụng</label>
                 <input type="text" value={toolAppName} onChange={(e) => setToolAppName(e.target.value)} placeholder="Ví dụ: GHTXDBK Desktop" required />
@@ -606,54 +701,115 @@ export const Dashboard: React.FC = () => {
                 <label>Phiên bản</label>
                 <input type="text" value={toolVersion} onChange={(e) => setToolVersion(e.target.value)} placeholder="Ví dụ: 1.2.0" required />
               </div>
-              <div className="field">
-                <label>Ghi chú cập nhật</label>
-                <textarea rows={5} value={toolReleaseNotes} onChange={(e) => setToolReleaseNotes(e.target.value)} placeholder="Mô tả điểm mới, sửa lỗi, hướng dẫn cài đặt..." required />
-              </div>
-              <div className="field">
-                <label>Chọn app từ máy local</label>
-                <input
-                  key={toolInputKey}
-                  type="file"
-                  accept=".exe,.rar,.zip"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] ?? null;
-                    setToolFile(file);
-                    if (!file) {
-                      setToolFileError('');
-                      return;
-                    }
+            </div>
+            <div className="field">
+              <label>Ghi chú cập nhật</label>
+              <textarea rows={7} value={toolReleaseNotes} onChange={(e) => setToolReleaseNotes(e.target.value)} placeholder="Mô tả điểm mới, sửa lỗi, hướng dẫn cài đặt..." required />
+            </div>
+            <div className="field">
+              <label>Chọn app từ máy local</label>
+              <input
+                key={toolInputKey}
+                type="file"
+                accept=".exe,.rar,.zip"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] ?? null;
+                  setToolFile(file);
+                  if (!file) {
+                    setToolFileError('');
+                    return;
+                  }
 
-                    const lowerFileName = file.name.toLowerCase();
-                    const isAllowedFile = allowedToolExtensions.some((extension) => lowerFileName.endsWith(extension));
-                    if (!isAllowedFile) {
-                      setToolFileError(`Bạn đang chọn "${file.name}". Hãy chọn file .exe, .rar hoặc .zip.`);
-                    } else {
-                      setToolFileError('');
-                    }
-                  }}
-                  required
-                />
-                <p className="muted" style={{ fontSize: '0.88rem' }}>
-                  Hiện tại nhận file cài đặt hoặc gói nén định dạng `.exe`, `.rar`, `.zip`, tối đa 250 MB.
-                </p>
-                {toolFileError ? (
-                  <div className="alert alert-error" style={{ marginBottom: 0 }}>
-                    {toolFileError}
-                  </div>
-                ) : null}
-              </div>
-              <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.55rem' }}>
-                <input type="checkbox" checked={toolMarkAsLatest} onChange={(e) => setToolMarkAsLatest(e.target.checked)} />
-                <ShieldCheck size={16} /> Đặt làm bản mới nhất
-              </label>
-              <button type="submit" className="btn btn-primary">Tải app lên</button>
-            </form>
+                  const lowerFileName = file.name.toLowerCase();
+                  const isAllowedFile = allowedToolExtensions.some((extension) => lowerFileName.endsWith(extension));
+                  if (!isAllowedFile) {
+                    setToolFileError(`Bạn đang chọn "${file.name}". Hãy chọn file .exe, .rar hoặc .zip.`);
+                  } else {
+                    setToolFileError('');
+                  }
+                }}
+                required
+              />
+              <p className="muted" style={{ fontSize: '0.88rem' }}>
+                Hiện tại nhận file cài đặt hoặc gói nén định dạng `.exe`, `.rar`, `.zip`, tối đa 250 MB.
+              </p>
+              {toolFileError ? (
+                <div className="alert alert-error" style={{ marginBottom: 0 }}>
+                  {toolFileError}
+                </div>
+              ) : null}
+            </div>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.55rem' }}>
+              <input type="checkbox" checked={toolMarkAsLatest} onChange={(e) => setToolMarkAsLatest(e.target.checked)} />
+              <ShieldCheck size={16} /> Đặt làm bản mới nhất
+            </label>
+            <button type="submit" className="btn btn-primary dashboard-submit-btn">Tải app lên</button>
+          </form>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="container reveal" style={{ display: 'grid', gap: '1.5rem' }}>
+      {successMessage ? <div className="alert alert-success">{successMessage}</div> : null}
+      {errorMessage ? <div className="alert alert-error">{errorMessage}</div> : null}
+
+      {activeComposer ? (
+        <section className="dashboard-composer-page">
+          <button type="button" className="btn btn-secondary dashboard-back-btn" onClick={() => {
+            if (activeComposer === 'course') resetCourseForm();
+            setActiveComposer(null);
+          }}>
+            <ArrowLeft size={16} /> Quay lại bảng điều khiển
+          </button>
+          <div className="dashboard-composer-title">
+            <div className="dashboard-composer-icon">{activeComposerItem?.icon}</div>
+            <div>
+              <p className="muted">{activeComposerItem?.meta}</p>
+              <h1>{activeComposerItem?.title}</h1>
+            </div>
+          </div>
+          <section className="card dashboard-composer-card">
+            {renderComposerContent()}
           </section>
-        ) : null}
-      </div>
+        </section>
+      ) : (
+        <>
+          <section className="hero" style={{ padding: '2.2rem 1.5rem' }}>
+            <h1 className="hero-title" style={{ fontSize: 'clamp(1.7rem, 4vw, 2.4rem)' }}>
+              {user?.role === 'Admin' ? 'Bảng điều khiển quản trị' : 'Bảng điều khiển nội dung'}
+            </h1>
+            <p className="hero-subtitle">
+              Quản lý khóa học, viết blog chuyên môn, chia sẻ tài liệu và phát hành app hoặc gói cài đặt cho người dùng ngay trong một nơi.
+            </p>
+          </section>
 
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', alignItems: 'start' }}>
+          <section className="dashboard-launcher">
+            {composerItems.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                className="card dashboard-launcher-item"
+                onClick={() => {
+                  resetMessages();
+                  if (item.key === 'course') resetCourseForm();
+                  setActiveComposer(item.key);
+                }}
+              >
+                <span className="dashboard-launcher-icon">{item.icon}</span>
+                <span className="dashboard-launcher-copy">
+                  <strong>{item.title}</strong>
+                  <span>{item.description}</span>
+                  <small>{item.meta}</small>
+                </span>
+                <ChevronRight size={20} />
+              </button>
+            ))}
+          </section>
+
+          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', alignItems: 'start' }}>
         <section className="card" style={{ padding: '1rem' }}>
           <h2 style={{ fontSize: '1.2rem', marginBottom: '0.9rem' }}>Khóa học của bạn</h2>
           {loading ? (
@@ -685,6 +841,9 @@ export const Dashboard: React.FC = () => {
                           }}
                         />
                       </label>
+                      <button type="button" className="btn btn-secondary" onClick={() => handleEditCourse(course)}>
+                        <PenSquare size={16} /> Sửa
+                      </button>
                       <Link to={`/courses/${course.id}`} className="btn btn-secondary">Xem</Link>
                       <button type="button" className="btn btn-secondary" style={{ padding: '0.52rem', color: 'var(--danger)' }} onClick={() => void handleDeleteCourse(course.id)}>
                         <Trash size={16} />
@@ -800,7 +959,6 @@ export const Dashboard: React.FC = () => {
                     <div className="release-notes">{release.releaseNotes}</div>
 
                     <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
-                      <a href={getMediaUrl(release.fileUrl) ?? '#'} target="_blank" rel="noreferrer" className="btn btn-secondary">Tải file</a>
                       <button type="button" className="btn btn-secondary" style={{ color: 'var(--danger)' }} onClick={() => void handleDeleteToolRelease(release.id)}>
                         <Trash size={16} /> Xóa
                       </button>
@@ -812,6 +970,8 @@ export const Dashboard: React.FC = () => {
           </section>
         ) : null}
       </div>
+        </>
+      )}
     </div>
   );
 };

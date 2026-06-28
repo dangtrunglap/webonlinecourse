@@ -8,7 +8,7 @@ const sections = [
     icon: FileCheck2,
     title: 'Điều khoản sử dụng',
     content:
-      'Người dùng cần sử dụng tài khoản đúng mục đích học tập, không chia sẻ trái phép nội dung, file tài liệu hoặc quyền truy cập khóa học cho bên thứ ba.',
+      'Người dùng cần sử dụng tài khoản đúng mục đích học tập, không chia sẻ trái phép nội dung hoặc quyền truy cập khóa học cho bên thứ ba.',
   },
   {
     icon: Wallet,
@@ -20,7 +20,7 @@ const sections = [
     icon: Shield,
     title: 'Nội dung và quyền riêng tư',
     content:
-      'Thông tin tài khoản và hành vi sử dụng trên website được dùng để vận hành nền tảng, hỗ trợ học viên và cải thiện trải nghiệm học tập. Nội dung kỹ thuật có thể được cập nhật khi có thay đổi về tài liệu hoặc phạm vi triển khai.',
+      'Thông tin tài khoản và hành vi sử dụng trên website được dùng để vận hành nền tảng, hỗ trợ học viên và cải thiện trải nghiệm học tập. Nội dung kỹ thuật có thể được cập nhật khi có thay đổi về phạm vi triển khai.',
   },
 ];
 

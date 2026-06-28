@@ -6,7 +6,7 @@ import { Seo } from '../components/Seo';
 import api from '../services/api';
 import { formatVnd } from '../utils/currency';
 import { getMediaUrl } from '../utils/media';
-import type { BlogPost, ResourceFile } from '../types/content';
+import type { BlogPost } from '../types/content';
 import { FACEBOOK_URL, SITE_NAME, SITE_URL, defaultOrganizationSchema } from '../constants/site';
 import { extractPlainTextFromBlogHtml, sanitizeBlogHtml } from '../utils/blogHtml';
 
@@ -22,15 +22,15 @@ interface Course {
 const defaultFaqs = [
   {
     question: 'Khóa học này phù hợp với ai?',
-    answer: 'Phù hợp với người đang cần một lộ trình học có ví dụ thực hành, tài liệu kèm theo và định hướng rõ cách áp dụng vào môn học hoặc đồ án.',
+    answer: 'Phù hợp với người đang cần một lộ trình học có ví dụ thực hành và định hướng rõ cách áp dụng vào môn học hoặc đồ án.',
   },
   {
     question: 'Đăng ký như thế nào?',
     answer: 'Bạn có thể nhắn fanpage Facebook để được hướng dẫn thanh toán thủ công, sau đó quản trị viên sẽ xác nhận và cấp quyền truy cập.',
   },
   {
-    question: 'Có tài liệu đi kèm không?',
-    answer: 'Nếu khóa học đã được gắn tài liệu bổ trợ, bạn sẽ thấy ngay trong phần tài liệu liên quan của trang này.',
+    question: 'Có hỗ trợ sau khi đăng ký không?',
+    answer: 'Bạn có thể liên hệ fanpage để được hướng dẫn lộ trình và giải đáp các phần cần làm rõ trong quá trình học.',
   },
 ];
 
@@ -41,7 +41,6 @@ export const CourseDetail: React.FC = () => {
 
   const [course, setCourse] = useState<Course | null>(null);
   const [relatedPosts, setRelatedPosts] = useState<BlogPost[]>([]);
-  const [relatedResources, setRelatedResources] = useState<ResourceFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -51,12 +50,8 @@ export const CourseDetail: React.FC = () => {
         const { data } = await api.get(`/courses/${id}`);
         setCourse(data);
 
-        const [postsResponse, resourcesResponse] = await Promise.all([
-          api.get(`/blogposts?courseId=${id}&limit=3`),
-          api.get(`/resources?courseId=${id}&limit=4`),
-        ]);
+        const postsResponse = await api.get(`/blogposts?courseId=${id}&limit=3`);
         setRelatedPosts(postsResponse.data ?? []);
-        setRelatedResources(resourcesResponse.data ?? []);
       } catch {
         setError('Không thể tải thông tin khóa học.');
       } finally {
@@ -68,10 +63,10 @@ export const CourseDetail: React.FC = () => {
   }, [id]);
 
   const handleEnrollClick = () => {
-    window.dataLayer?.push({ event: 'course_cta_click', courseId: id, location: 'course_sidebar' });
-    window.gtag?.('event', 'course_cta_click', { course_id: id, location: 'course_sidebar' });
-    window.fbq?.('trackCustom', 'course_cta_click', { courseId: id, location: 'course_sidebar' });
-    window.ttq?.track?.('course_cta_click', { courseId: id, location: 'course_sidebar' });
+    window.dataLayer?.push({ event: 'course_cta_click', courseId: id, location: 'course_footer' });
+    window.gtag?.('event', 'course_cta_click', { course_id: id, location: 'course_footer' });
+    window.fbq?.('trackCustom', 'course_cta_click', { courseId: id, location: 'course_footer' });
+    window.ttq?.track?.('course_cta_click', { courseId: id, location: 'course_footer' });
 
     if (!isAuthenticated) {
       navigate('/login');
@@ -89,7 +84,7 @@ export const CourseDetail: React.FC = () => {
 
     return [
       `Lộ trình xoay quanh chủ đề: ${course.title}.`,
-      'Có liên kết sang bài viết và tài liệu liên quan để bạn học liền mạch hơn.',
+      'Có liên kết sang bài viết liên quan để bạn học liền mạch hơn.',
       'Phù hợp để dùng cho học phần, đồ án hoặc tự nâng cấp kỹ năng nền.',
     ];
   }, [course]);
@@ -103,7 +98,7 @@ export const CourseDetail: React.FC = () => {
   }
 
   return (
-    <div className="container reveal" style={{ display: 'grid', gap: '1.5rem' }}>
+    <div className="container reveal course-detail-shell">
       <Seo
         title={`${course.title} | ${SITE_NAME}`}
         description={descriptionText}
@@ -151,8 +146,8 @@ export const CourseDetail: React.FC = () => {
 
       {error && <div className="alert alert-error">{error}</div>}
 
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', alignItems: 'start' }}>
-        <article className="card" style={{ padding: '1.4rem' }}>
+      <div className="course-detail-layout">
+        <article className="card course-detail-main">
           <h1 style={{ fontSize: '2rem', marginBottom: '0.85rem' }}>{course.title}</h1>
           <div className="muted course-description blog-rendered" style={{ marginBottom: '1rem' }} dangerouslySetInnerHTML={{ __html: safeDescriptionHtml }} />
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', marginBottom: '1.2rem' }}>
@@ -198,8 +193,8 @@ export const CourseDetail: React.FC = () => {
           </section>
         </article>
 
-        <aside className="card" style={{ padding: '1rem', position: 'sticky', top: '90px', display: 'grid', gap: '1rem' }}>
-          <div className="course-image" style={{ borderRadius: '12px', overflow: 'hidden', height: '200px' }}>
+        <aside className="card course-enroll-card">
+          <div className="course-image course-enroll-image">
             {image ? <img src={image} alt={course.title} /> : null}
           </div>
           <h2 style={{ fontSize: '2rem', color: 'var(--primary)' }}>{formatVnd(course.price)}</h2>
@@ -209,22 +204,6 @@ export const CourseDetail: React.FC = () => {
           <p className="muted" style={{ margin: 0, fontSize: '0.95rem' }}>
             Hãy nhắn tin qua Facebook để được hướng dẫn thanh toán thủ công và xác nhận đăng ký khóa học.
           </p>
-
-          <div className="card" style={{ padding: '1rem', background: '#f8fafc', display: 'grid', gap: '0.75rem' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700, color: 'var(--primary)' }}>
-              <FileText size={17} /> Tài liệu khóa học
-            </div>
-            {relatedResources.length === 0 ? (
-              <p className="muted">Tài liệu sẽ được cập nhật tại đây.</p>
-            ) : relatedResources.map((resource) => {
-              const fileUrl = getMediaUrl(resource.fileUrl);
-              return (
-                <a key={resource.id} href={fileUrl ?? '#'} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ width: '100%' }}>
-                  {resource.title}
-                </a>
-              );
-            })}
-          </div>
         </aside>
       </div>
     </div>

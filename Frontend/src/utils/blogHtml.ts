@@ -3,6 +3,8 @@
   'B',
   'BLOCKQUOTE',
   'BR',
+  'COL',
+  'COLGROUP',
   'DIV',
   'EM',
   'H1',
@@ -15,16 +17,45 @@
   'LI',
   'OL',
   'P',
+  'S',
   'SPAN',
   'STRONG',
+  'SUB',
+  'SUP',
+  'TABLE',
+  'TBODY',
+  'TD',
+  'TFOOT',
+  'TH',
+  'THEAD',
+  'TR',
   'U',
   'UL',
 ]);
 
 const allowedInlineStyleNames = new Set([
+  'background-color',
+  'border',
+  'border-collapse',
+  'border-color',
+  'border-style',
+  'border-width',
   'color',
   'font-family',
+  'font-size',
+  'font-weight',
+  'height',
+  'line-height',
+  'margin-left',
+  'padding-left',
+  'text-align',
+  'text-decoration',
+  'vertical-align',
+  'width',
 ]);
+
+const tableCellTags = new Set(['TD', 'TH']);
+const tableSpanAttributeNames = new Set(['colspan', 'rowspan']);
 
 const hasHtmlTag = (value: string) => /<\/?[a-z][\s\S]*>/i.test(value);
 
@@ -51,7 +82,7 @@ const sanitizeStyleValue = (name: string, value: string): string | null => {
     return null;
   }
 
-  if (name === 'color') {
+  if (name === 'color' || name === 'background-color' || name === 'border-color') {
     return /^(#[0-9a-f]{3,8}|rgb(a)?\([\d\s,.%]+\)|hsl(a)?\([\d\s,.%]+\)|[a-zA-Z]{3,20})$/i.test(trimmed)
       ? trimmed
       : null;
@@ -59,6 +90,60 @@ const sanitizeStyleValue = (name: string, value: string): string | null => {
 
   if (name === 'font-family') {
     return /^[a-zA-Z0-9\s,'\"_-]{1,120}$/.test(trimmed) ? trimmed : null;
+  }
+
+  if (name === 'font-size') {
+    return /^(\d{1,3}(\.\d{1,2})?(px|pt|em|rem|%)|small|medium|large|x-large|xx-large)$/i.test(trimmed)
+      ? trimmed
+      : null;
+  }
+
+  if (name === 'font-weight') {
+    return /^(normal|bold|bolder|lighter|[1-9]00)$/i.test(trimmed) ? trimmed : null;
+  }
+
+  if (name === 'line-height') {
+    return /^(\d{1,2}(\.\d{1,2})?|\d{1,3}(\.\d{1,2})?(px|pt|em|rem|%))$/i.test(trimmed)
+      ? trimmed
+      : null;
+  }
+
+  if (name === 'width') {
+    return /^(\d{1,3}(\.\d{1,2})?%|\d{1,4}px|auto)$/i.test(trimmed) ? trimmed : null;
+  }
+
+  if (name === 'height') {
+    return /^(\d{1,4}px|auto)$/i.test(trimmed) ? trimmed : null;
+  }
+
+  if (name === 'margin-left' || name === 'padding-left' || name === 'border-width') {
+    return /^(\d{1,4}(\.\d{1,2})?(px|pt|em|rem|%)|0)$/i.test(trimmed) ? trimmed : null;
+  }
+
+  if (name === 'text-align') {
+    return /^(left|right|center|justify|start|end)$/i.test(trimmed) ? trimmed : null;
+  }
+
+  if (name === 'vertical-align') {
+    return /^(baseline|sub|super|top|text-top|middle|bottom|text-bottom)$/i.test(trimmed) ? trimmed : null;
+  }
+
+  if (name === 'text-decoration') {
+    return /^(none|underline|line-through|overline)(\s+(solid|double|dotted|dashed|wavy))?$/i.test(trimmed)
+      ? trimmed
+      : null;
+  }
+
+  if (name === 'border-style') {
+    return /^(none|solid|dashed|dotted|double)$/i.test(trimmed) ? trimmed : null;
+  }
+
+  if (name === 'border-collapse') {
+    return /^(collapse|separate)$/i.test(trimmed) ? trimmed : null;
+  }
+
+  if (name === 'border') {
+    return /^[\d.\s#a-zA-Z(),%]+$/.test(trimmed) ? trimmed : null;
   }
 
   return null;
@@ -144,6 +229,10 @@ export const sanitizeBlogHtml = (value: string | null | undefined): string => {
           }
 
           if (name === 'src' && !/^(https?:|\/)/i.test(attrValue)) {
+            element.removeAttribute(attr.name);
+          }
+        } else if (tableCellTags.has(element.tagName) && tableSpanAttributeNames.has(name)) {
+          if (!/^[1-9]\d?$/.test(attrValue)) {
             element.removeAttribute(attr.name);
           }
         } else if (name !== 'class') {

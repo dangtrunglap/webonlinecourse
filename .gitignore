@@ -1,0 +1,7 @@
+.deploy_tmp/
+Backend/publish_domain/
+Backend/wwwroot/uploads/
+Backend/App_Data/
+Frontend/asset/backup/
+*.log
+*.tar.gz

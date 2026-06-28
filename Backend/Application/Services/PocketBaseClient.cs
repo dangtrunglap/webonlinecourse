@@ -22,6 +22,10 @@ public class PocketBaseOptions
 public record PocketBaseAuthResult(string UserId, string Email, string Name, string Role, string RawToken);
 public record UserProfile(string UserId, string Name, string Role);
 public record EntitlementResult(bool IsNew, DateTime EnrollmentDate);
+public class PocketBaseRequestException(HttpStatusCode statusCode, string message) : Exception(message)
+{
+    public HttpStatusCode StatusCode { get; } = statusCode;
+}
 
 public interface IPocketBaseClient
 {
@@ -33,6 +37,7 @@ public interface IPocketBaseClient
     Task<(IReadOnlyList<Dictionary<string, JsonElement>> Items, int TotalItems)> GetCoursesAsync(string? search, int page, int pageSize);
     Task<Dictionary<string, JsonElement>?> GetCourseByIdAsync(string id);
     Task<Dictionary<string, JsonElement>> CreateCourseAsync(string title, string description, decimal price, string instructorId, string instructorName);
+    Task<Dictionary<string, JsonElement>> UpdateCourseAsync(string id, string title, string description, decimal price);
     Task<bool> DeleteCourseAsync(string id);
     Task<bool> UpdateCourseThumbnailAsync(string id, string thumbnailUrl);
 
@@ -177,7 +182,33 @@ public class PocketBaseClient : IPocketBaseClient
             version = 1
         });
 
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync();
+            throw new PocketBaseRequestException(response.StatusCode, BuildPocketBaseErrorMessage(body, "Tạo khóa học thất bại trên PocketBase."));
+        }
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        return ToDictionary(doc.RootElement);
+    }
+
+    public async Task<Dictionary<string, JsonElement>> UpdateCourseAsync(string id, string title, string description, decimal price)
+    {
+        await EnsureAdminTokenAsync();
+
+        var response = await SendAdminAsync(HttpMethod.Patch, $"api/collections/{_options.CoursesCollection}/records/{id}", new
+        {
+            title,
+            description,
+            price
+        });
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync();
+            throw new PocketBaseRequestException(response.StatusCode, BuildPocketBaseErrorMessage(body, "Cập nhật khóa học thất bại trên PocketBase."));
+        }
+
         using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         return ToDictionary(doc.RootElement);
     }
@@ -319,6 +350,47 @@ public class PocketBaseClient : IPocketBaseClient
         => JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(element.GetRawText()) ?? new Dictionary<string, JsonElement>();
 
     private static string EscapeFilter(string value) => value.Replace("'", "\\'");
+
+    private static string BuildPocketBaseErrorMessage(string body, string fallback)
+    {
+        if (string.IsNullOrWhiteSpace(body)) return fallback;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(body);
+            var root = doc.RootElement;
+            var message = root.TryGetProperty("message", out var messageEl) && messageEl.ValueKind == JsonValueKind.String
+                ? messageEl.GetString() ?? fallback
+                : fallback;
+
+            if (root.TryGetProperty("data", out var dataEl) && dataEl.ValueKind == JsonValueKind.Object)
+            {
+                var fieldMessages = dataEl.EnumerateObject()
+                    .Select(field =>
+                    {
+                        if (field.Value.ValueKind != JsonValueKind.Object ||
+                            !field.Value.TryGetProperty("message", out var fieldMessageEl) ||
+                            fieldMessageEl.ValueKind != JsonValueKind.String)
+                        {
+                            return null;
+                        }
+
+                        return $"{field.Name}: {fieldMessageEl.GetString()}";
+                    })
+                    .Where(value => !string.IsNullOrWhiteSpace(value))
+                    .ToList();
+
+                if (fieldMessages.Count > 0)
+                    return $"{message} {string.Join("; ", fieldMessages)}";
+            }
+
+            return message;
+        }
+        catch (JsonException)
+        {
+            return fallback;
+        }
+    }
 
     private static string NormalizeRole(string? role)
     {

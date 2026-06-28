@@ -59,6 +59,10 @@ public class ToolReleaseDto
     public string FileUrl { get; set; } = string.Empty;
     public string FileExtension { get; set; } = string.Empty;
     public long FileSize { get; set; }
+    public string DownloadFileName { get; set; } = string.Empty;
+    public string DownloadFileUrl { get; set; } = string.Empty;
+    public string DownloadFileExtension { get; set; } = string.Empty;
+    public long DownloadFileSize { get; set; }
     public string UploadedById { get; set; } = string.Empty;
     public string UploadedByName { get; set; } = string.Empty;
     public bool IsLatest { get; set; }

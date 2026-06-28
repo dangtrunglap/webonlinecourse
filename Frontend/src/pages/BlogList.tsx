@@ -61,7 +61,6 @@ export const BlogList: React.FC = () => {
           Tổng hợp bài viết chuyên môn, kinh nghiệm đồ án và chia sẻ thực chiến từ đội ngũ GHTXDBK.
         </p>
         <div className="hero-actions">
-          <Link to="/resources" className="btn btn-secondary">Xem thư viện tài liệu</Link>
           <a href={FACEBOOK_URL} target="_blank" rel="noreferrer" className="btn btn-primary">
             Tham khảo Facebook
           </a>
@@ -84,7 +83,7 @@ export const BlogList: React.FC = () => {
         ) : filteredPosts.length === 0 ? (
           <div className="card" style={{ padding: '2rem', textAlign: 'center' }}>Chưa có bài viết phù hợp.</div>
         ) : (
-          <div className="grid grid-3">
+          <div className="grid blog-grid">
             {filteredPosts.map((post) => {
               const coverImage = getMediaUrl(post.coverImageUrl);
 

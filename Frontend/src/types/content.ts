@@ -37,6 +37,10 @@ export interface ToolRelease {
   fileUrl: string;
   fileExtension: string;
   fileSize: number;
+  downloadFileName?: string;
+  downloadFileUrl?: string;
+  downloadFileExtension?: string;
+  downloadFileSize?: number;
   uploadedById: string;
   uploadedByName: string;
   isLatest: boolean;

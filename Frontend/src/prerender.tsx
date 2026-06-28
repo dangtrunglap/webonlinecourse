@@ -14,7 +14,7 @@ type HeadMetadata = {
 
 const routeHead: Record<string, HeadMetadata> = {
   '/': {
-    title: `${SITE_NAME} | Khóa học xây dựng, tài liệu và blog thực chiến`,
+    title: `${SITE_NAME} | Khóa học xây dựng và blog thực chiến`,
     description: SITE_DESCRIPTION,
     canonical: `${SITE_URL}/`,
   },
@@ -22,11 +22,6 @@ const routeHead: Record<string, HeadMetadata> = {
     title: `Blog chuyên môn | ${SITE_NAME}`,
     description: 'Tổng hợp bài viết chuyên môn, kinh nghiệm đồ án và chia sẻ thực chiến từ đội ngũ GHTXDBK.',
     canonical: `${SITE_URL}/blog`,
-  },
-  '/resources': {
-    title: `Thư viện tài liệu | ${SITE_NAME}`,
-    description: 'File bài tập, tài liệu hướng dẫn, checklist và biểu mẫu được GHTXDBK chia sẻ trực tiếp trên nền tảng.',
-    canonical: `${SITE_URL}/resources`,
   },
   '/tools': {
     title: `Công cụ | ${SITE_NAME}`,
@@ -40,12 +35,12 @@ const routeHead: Record<string, HeadMetadata> = {
   },
   '/contact': {
     title: `Liên hệ | ${SITE_NAME}`,
-    description: 'Liên hệ GHTXDBK để được tư vấn khóa học, tài liệu, hỗ trợ đăng ký và giải đáp trước khi mua.',
+    description: 'Liên hệ GHTXDBK để được tư vấn khóa học, hỗ trợ đăng ký và giải đáp trước khi mua.',
     canonical: `${SITE_URL}/contact`,
   },
   '/faq': {
     title: `FAQ | ${SITE_NAME}`,
-    description: 'Giải đáp các câu hỏi thường gặp về khóa học, tài liệu, cách đăng ký và phạm vi nội dung của GHTXDBK.',
+    description: 'Giải đáp các câu hỏi thường gặp về khóa học, cách đăng ký và phạm vi nội dung của GHTXDBK.',
     canonical: `${SITE_URL}/faq`,
   },
   '/policies': {

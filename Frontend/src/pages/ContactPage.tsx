@@ -4,7 +4,7 @@ import { Seo } from '../components/Seo';
 import { FACEBOOK_URL, SITE_NAME, SITE_URL, defaultOrganizationSchema } from '../constants/site';
 
 const contactSteps = [
-  'Xem khóa học hoặc tài liệu phù hợp với nhu cầu của bạn.',
+  'Xem khóa học hoặc bài viết phù hợp với nhu cầu của bạn.',
   'Nhắn tin qua Facebook để được tư vấn lộ trình và hình thức thanh toán.',
   'Sau khi xác nhận, đội ngũ sẽ hướng dẫn truy cập nội dung phù hợp trên hệ thống.',
 ];
@@ -21,7 +21,7 @@ export const ContactPage: React.FC = () => {
     <div className="container reveal">
       <Seo
         title={`Liên hệ | ${SITE_NAME}`}
-        description="Liên hệ GHTXDBK để được tư vấn khóa học, tài liệu, hỗ trợ đăng ký và giải đáp trước khi mua."
+        description="Liên hệ GHTXDBK để được tư vấn khóa học, hỗ trợ đăng ký và giải đáp trước khi mua."
         path="/contact"
         keywords={['lien he GHTXDBK', 'tu van khoa hoc xay dung', 'dang ky khoa hoc Revit ETABS']}
         jsonLd={[
@@ -44,7 +44,7 @@ export const ContactPage: React.FC = () => {
       <section className="hero">
         <h1 className="hero-title">Liên hệ và tư vấn</h1>
         <p className="hero-subtitle">
-          Nếu bạn đang phân vân nên học khóa nào, cần tài liệu nào hoặc muốn xác nhận cách đăng ký, đây là trang liên hệ nhanh của GHTXDBK.
+          Nếu bạn đang phân vân nên học khóa nào hoặc muốn xác nhận cách đăng ký, đây là trang liên hệ nhanh của GHTXDBK.
         </p>
         <div className="hero-actions">
           <a
@@ -84,7 +84,7 @@ export const ContactPage: React.FC = () => {
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)', fontWeight: 700 }}>
               <Mail size={18} /> Cách gửi yêu cầu
             </div>
-            <p className="muted">Khi liên hệ, bạn nên ghi rõ nhu cầu: học phần mềm nào, đang làm đồ án hay cần tài liệu, và mong muốn nhận hỗ trợ theo hướng nào.</p>
+            <p className="muted">Khi liên hệ, bạn nên ghi rõ nhu cầu: học phần mềm nào, đang làm đồ án hay mong muốn nhận hỗ trợ theo hướng nào.</p>
             <div className="muted">Ví dụ: “Em cần học ETABS để làm đồ án kết cấu, muốn biết nên bắt đầu từ khóa nào.”</div>
           </article>
 
@@ -93,7 +93,6 @@ export const ContactPage: React.FC = () => {
               <ArrowRight size={18} /> Điều hướng nhanh
             </div>
             <a href="/" className="btn btn-secondary">Khóa học</a>
-            <a href="/resources" className="btn btn-secondary">Tài liệu</a>
             <a href="/blog" className="btn btn-secondary">Bài viết hướng dẫn</a>
           </article>
         </div>

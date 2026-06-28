@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, CalendarDays, User } from 'lucide-react';
 import { Seo } from '../components/Seo';
 import api from '../services/api';
-import type { BlogPost, ResourceFile } from '../types/content';
+import type { BlogPost } from '../types/content';
 import { sanitizeBlogHtml } from '../utils/blogHtml';
 import { getMediaUrl } from '../utils/media';
 import { SITE_NAME, SITE_URL, defaultOrganizationSchema } from '../constants/site';
@@ -11,7 +11,6 @@ import { SITE_NAME, SITE_URL, defaultOrganizationSchema } from '../constants/sit
 export const BlogDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [post, setPost] = useState<BlogPost | null>(null);
-  const [resources, setResources] = useState<ResourceFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -21,12 +20,6 @@ export const BlogDetail: React.FC = () => {
       try {
         const { data } = await api.get(`/blogposts/${id}`);
         setPost(data);
-        if (data?.courseId) {
-          const resourcesResponse = await api.get(`/resources?courseId=${data.courseId}&limit=4`);
-          setResources(resourcesResponse.data ?? []);
-        } else {
-          setResources([]);
-        }
       } catch {
         setError('Không thể tải bài viết này.');
       } finally {
@@ -117,32 +110,6 @@ export const BlogDetail: React.FC = () => {
         <div className="blog-rendered" dangerouslySetInnerHTML={{ __html: safeHtml }} />
       </article>
 
-      {resources.length > 0 ? (
-        <section className="section" style={{ marginBottom: 0 }}>
-          <h2 className="section-title" style={{ textAlign: 'left', fontSize: '1.5rem' }}>Tài liệu liên quan</h2>
-          <div className="grid grid-3">
-            {resources.map((resource) => {
-              const fileUrl = getMediaUrl(resource.fileUrl);
-              return (
-                <article key={resource.id} className="card" style={{ padding: '1rem', display: 'grid', gap: '0.8rem' }}>
-                  <div>
-                    <h3 style={{ fontSize: '1.05rem', marginBottom: '0.3rem' }}>{resource.title}</h3>
-                    <p className="muted line-clamp-3">{resource.description}</p>
-                  </div>
-                  <div className="muted" style={{ fontSize: '0.9rem' }}>
-                    File: {resource.fileName}
-                  </div>
-                  {fileUrl ? (
-                    <a href={fileUrl} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ width: '100%' }}>
-                      Tải tài liệu
-                    </a>
-                  ) : null}
-                </article>
-              );
-            })}
-          </div>
-        </section>
-      ) : null}
     </div>
   );
 };

@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import {
   ArrowRight,
   BookMarked,
-  FileText,
   GraduationCap,
   PenSquare,
   Search,
@@ -14,7 +13,7 @@ import { Seo } from '../components/Seo';
 import api from '../services/api';
 import { formatVnd } from '../utils/currency';
 import { getMediaUrl } from '../utils/media';
-import type { BlogPost, ResourceFile } from '../types/content';
+import type { BlogPost } from '../types/content';
 import { extractPlainTextFromBlogHtml } from '../utils/blogHtml';
 import {
   FACEBOOK_URL,
@@ -43,8 +42,8 @@ const highlights = [
   },
   {
     icon: BookMarked,
-    title: 'Tài liệu chất lượng',
-    description: 'Nội dung được cập nhật theo bài tập thực tế và hướng dẫn từng bước.',
+    title: 'Nội dung chất lượng',
+    description: 'Bài học được cập nhật theo bài tập thực tế và hướng dẫn từng bước.',
   },
   {
     icon: GraduationCap,
@@ -61,7 +60,7 @@ const highlights = [
 const homepageFaqs = [
   {
     question: 'GHTXDBK là gì?',
-    answer: 'Đây là website tổng hợp khóa học, tài liệu, bài viết hướng dẫn và công cụ dành cho người học ngành xây dựng.',
+    answer: 'Đây là website tổng hợp khóa học, bài viết hướng dẫn và công cụ dành cho người học ngành xây dựng.',
   },
   {
     question: 'Dành cho ai?',
@@ -69,14 +68,13 @@ const homepageFaqs = [
   },
   {
     question: 'Hành động chính trên site là gì?',
-    answer: 'Bạn có thể khám phá khóa học, đọc blog, tải tài liệu và liên hệ tư vấn để chọn nội dung phù hợp.',
+    answer: 'Bạn có thể khám phá khóa học, đọc blog và liên hệ tư vấn để chọn nội dung phù hợp.',
   },
 ];
 
 export const CourseList: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [latestPosts, setLatestPosts] = useState<BlogPost[]>([]);
-  const [latestResources, setLatestResources] = useState<ResourceFile[]>([]);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -104,12 +102,8 @@ export const CourseList: React.FC = () => {
   useEffect(() => {
     const fetchHighlights = async () => {
       try {
-        const [postsResponse, resourcesResponse] = await Promise.all([
-          api.get('/blogposts?limit=3'),
-          api.get('/resources?limit=3'),
-        ]);
+        const postsResponse = await api.get('/blogposts?limit=3');
         setLatestPosts(postsResponse.data ?? []);
-        setLatestResources(resourcesResponse.data ?? []);
       } catch (err) {
         console.error('Failed to load homepage highlights', err);
       }
@@ -123,16 +117,15 @@ export const CourseList: React.FC = () => {
   const liveStats = [
     { label: 'Khóa học đang hiển thị', value: String(total || courses.length || 0) },
     { label: 'Bài viết gần đây', value: String(latestPosts.length) },
-    { label: 'Tài liệu gần đây', value: String(latestResources.length) },
   ];
 
   return (
     <div className="container reveal">
       <Seo
-        title={`${SITE_NAME} | Khóa học xây dựng, tài liệu và blog thực chiến`}
+        title={`${SITE_NAME} | Khóa học xây dựng và blog thực chiến`}
         description={SITE_DESCRIPTION}
         path="/"
-        keywords={['GHTXDBK', 'khoa hoc Revit', 'khoa hoc ETABS', 'do an xay dung', 'tai lieu xay dung', 'TCVN']}
+        keywords={['GHTXDBK', 'khoa hoc Revit', 'khoa hoc ETABS', 'do an xay dung', 'TCVN']}
         jsonLd={[
           defaultOrganizationSchema,
           defaultWebsiteSchema,
@@ -160,18 +153,15 @@ export const CourseList: React.FC = () => {
       />
 
       <section className="hero">
-        <h1 className="hero-title">Khóa học và tài nguyên xây dựng thực chiến từ GHTXDBK</h1>
+        <h1 className="hero-title">Khóa học xây dựng thực chiến từ GHTXDBK</h1>
         <p className="hero-subtitle">
           GHTXDBK dành cho sinh viên xây dựng, người đang làm đồ án và kỹ sư trẻ muốn học Revit, ETABS, tiêu chuẩn,
-          tài liệu thực hành và cách triển khai công việc theo hướng dễ áp dụng hơn.
+          bài học thực hành và cách triển khai công việc theo hướng dễ áp dụng hơn.
         </p>
         <div className="hero-actions">
           <a href="#course-section" className="btn btn-primary">
             Khám phá khóa học <ArrowRight size={16} />
           </a>
-          <Link to="/resources" className="btn btn-secondary">
-            Nhận tài liệu
-          </Link>
           <a href={FACEBOOK_URL} className="btn btn-secondary" target="_blank" rel="noreferrer">
             Inbox tư vấn
           </a>
@@ -223,12 +213,11 @@ export const CourseList: React.FC = () => {
           <div>
             <h2 className="section-title" style={{ textAlign: 'left', marginBottom: '0.35rem' }}>Chia sẻ mới từ GHTXDBK</h2>
             <p className="section-subtitle" style={{ textAlign: 'left', marginBottom: 0 }}>
-              Kinh nghiệm đồ án, mẹo học và tài liệu cập nhật ngay trên nền tảng.
+              Kinh nghiệm đồ án và mẹo học cập nhật ngay trên nền tảng.
             </p>
           </div>
           <div style={{ display: 'flex', gap: '0.7rem', flexWrap: 'wrap' }}>
             <Link to="/blog" className="btn btn-secondary">Toàn bộ bài viết</Link>
-            <Link to="/resources" className="btn btn-primary">Thư viện tài liệu</Link>
           </div>
         </div>
 
@@ -245,21 +234,6 @@ export const CourseList: React.FC = () => {
                 <p className="muted line-clamp-2">{post.summary}</p>
                 <span className="muted" style={{ fontSize: '0.9rem' }}>{post.courseTitle || post.instructorName}</span>
               </Link>
-            ))}
-          </section>
-
-          <section className="card" style={{ padding: '1.15rem', display: 'grid', gap: '0.9rem' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)', fontWeight: 700 }}>
-              <FileText size={18} /> Tài liệu mới
-            </div>
-            {latestResources.length === 0 ? (
-              <p className="muted">Tài liệu mới sẽ xuất hiện tại đây.</p>
-            ) : latestResources.map((resource) => (
-              <article key={resource.id} className="card" style={{ padding: '0.9rem', display: 'grid', gap: '0.45rem' }}>
-                <h3 style={{ fontSize: '1rem' }} className="line-clamp-2">{resource.title}</h3>
-                <p className="muted line-clamp-2">{resource.description}</p>
-                <span className="muted" style={{ fontSize: '0.9rem' }}>{resource.courseTitle || resource.fileName}</span>
-              </article>
             ))}
           </section>
         </div>

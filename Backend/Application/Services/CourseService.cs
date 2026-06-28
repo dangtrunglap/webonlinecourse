@@ -8,6 +8,7 @@ public interface ICourseService
     Task<(IEnumerable<CourseDto> Courses, int TotalCount)> GetCoursesAsync(string? search, int pageNumber, int pageSize);
     Task<CourseDto?> GetCourseByIdAsync(string id);
     Task<CourseDto> CreateCourseAsync(CreateCourseDto dto, string instructorId, string instructorName);
+    Task<CourseDto?> UpdateCourseAsync(string id, CreateCourseDto dto, string currentUserId, string role);
     Task<bool> DeleteCourseAsync(string id, string currentUserId, string role);
     Task<string?> UpdateThumbnailAsync(string id, string thumbnailUrl, string currentUserId, string role);
 }
@@ -42,6 +43,21 @@ public class CourseService : ICourseService
         await _pocketBase.InitializeAsync();
         var item = await _pocketBase.CreateCourseAsync(dto.Title, dto.Description, dto.Price, instructorId, instructorName);
         return MapCourse(item);
+    }
+
+    public async Task<CourseDto?> UpdateCourseAsync(string id, CreateCourseDto dto, string currentUserId, string role)
+    {
+        await _pocketBase.InitializeAsync();
+        var item = await _pocketBase.GetCourseByIdAsync(id);
+        if (item == null) return null;
+
+        var instructorId = GetString(item, "instructorId");
+        var isAdmin = string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase);
+        if (!isAdmin && !string.Equals(instructorId, currentUserId, StringComparison.Ordinal))
+            return null;
+
+        var updated = await _pocketBase.UpdateCourseAsync(id, dto.Title, dto.Description, dto.Price);
+        return MapCourse(updated);
     }
 
     public async Task<bool> DeleteCourseAsync(string id, string currentUserId, string role)

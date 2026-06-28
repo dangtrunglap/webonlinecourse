@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [[ -z "${SUDO_PASSWORD:-}" ]]; then
+  echo "SUDO_PASSWORD is required" >&2
+  exit 1
+fi
+
+sudo_cmd() {
+  printf '%s\n' "$SUDO_PASSWORD" | sudo -S "$@"
+}
+
 stamp="$(date +%Y%m%d_%H%M%S)"
 
 mkdir -p /home/adminuser/deploy_domain/backend_stage /home/adminuser/deploy_domain/frontend_stage
@@ -9,11 +18,11 @@ rm -rf /home/adminuser/deploy_domain/backend_stage/* /home/adminuser/deploy_doma
 tar -xzf /home/adminuser/backend_domain_publish.tar.gz -C /home/adminuser/deploy_domain/backend_stage
 tar -xzf /home/adminuser/frontend_domain_dist.tar.gz -C /home/adminuser/deploy_domain/frontend_stage
 
-echo adminuser | sudo -S mkdir -p "/var/www/onlinecourseapi_backup_${stamp}" "/var/www/onlinecourse_frontend_backup_${stamp}"
-echo adminuser | sudo -S rsync -a /var/www/onlinecourseapi/ "/var/www/onlinecourseapi_backup_${stamp}/"
-echo adminuser | sudo -S rsync -a /var/www/onlinecourse_frontend/ "/var/www/onlinecourse_frontend_backup_${stamp}/"
+sudo_cmd mkdir -p "/var/www/onlinecourseapi_backup_${stamp}" "/var/www/onlinecourse_frontend_backup_${stamp}"
+sudo_cmd rsync -a /var/www/onlinecourseapi/ "/var/www/onlinecourseapi_backup_${stamp}/"
+sudo_cmd rsync -a /var/www/onlinecourse_frontend/ "/var/www/onlinecourse_frontend_backup_${stamp}/"
 
-echo adminuser | sudo -S rsync -a --delete \
+sudo_cmd rsync -a --delete \
   --exclude App_Data \
   --exclude courses.db \
   --exclude courses.db-shm \
@@ -23,13 +32,25 @@ echo adminuser | sudo -S rsync -a --delete \
   --exclude wwwroot \
   /home/adminuser/deploy_domain/backend_stage/ /var/www/onlinecourseapi/
 
-echo adminuser | sudo -S rsync -a --delete /home/adminuser/deploy_domain/frontend_stage/ /var/www/onlinecourse_frontend/
+sudo_cmd rsync -a --delete /home/adminuser/deploy_domain/frontend_stage/ /var/www/onlinecourse_frontend/
 
 cat <<'EOF' >/home/adminuser/ghtxdbk.com.nginx
 server {
     listen 80;
     listen [::]:80;
     server_name ghtxdbk.com www.ghtxdbk.com;
+
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name ghtxdbk.com www.ghtxdbk.com;
+    client_max_body_size 250M;
+
+    ssl_certificate /etc/letsencrypt/live/ghtxdbk.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/ghtxdbk.com/privkey.pem;
 
     root /var/www/onlinecourse_frontend;
     index index.html;
@@ -67,12 +88,12 @@ server {
 }
 EOF
 
-echo adminuser | sudo -S mv /home/adminuser/ghtxdbk.com.nginx /etc/nginx/sites-available/ghtxdbk.com
-echo adminuser | sudo -S ln -sfn /etc/nginx/sites-available/ghtxdbk.com /etc/nginx/sites-enabled/ghtxdbk.com
+sudo_cmd mv /home/adminuser/ghtxdbk.com.nginx /etc/nginx/sites-available/ghtxdbk.com
+sudo_cmd ln -sfn /etc/nginx/sites-available/ghtxdbk.com /etc/nginx/sites-enabled/ghtxdbk.com
 
-echo adminuser | sudo -S nginx -t
-echo adminuser | sudo -S systemctl restart onlinecourseapi
-echo adminuser | sudo -S systemctl reload nginx
+sudo_cmd nginx -t
+sudo_cmd systemctl restart onlinecourseapi
+sudo_cmd systemctl reload nginx
 
 echo "=== HTTP CHECK ==="
 curl -I -H "Host: ghtxdbk.com" http://127.0.0.1/

@@ -17,12 +17,13 @@ public interface ICommunityContentService
     Task<StoredContentDeleteResult> DeleteResourceAsync(string id, string currentUserId, string role);
 
     Task<IReadOnlyList<ToolReleaseDto>> GetToolReleasesAsync(int? limit, string? uploadedById);
-    Task<ToolReleaseDto> CreateToolReleaseAsync(CreateToolReleaseDto dto, StoredFileDetails file, string currentUserId, string currentUserName);
+    Task<ToolReleaseCreateResult> CreateToolReleaseAsync(CreateToolReleaseDto dto, StoredFileDetails file, string currentUserId, string currentUserName);
     Task<StoredContentDeleteResult> DeleteToolReleaseAsync(string id, string currentUserId, string role);
 }
 
 public record StoredContentDeleteResult(bool Deleted, string? FileUrl);
 public record BlogPostUpdateResult(BlogPostDto Post, string? PreviousCoverImageUrl);
+public record ToolReleaseCreateResult(ToolReleaseDto Release, IReadOnlyList<string> ReplacedFileUrls);
 
 public class CommunityContentService : ICommunityContentService
 {
@@ -257,6 +258,17 @@ public class CommunityContentService : ICommunityContentService
     public async Task<IReadOnlyList<ToolReleaseDto>> GetToolReleasesAsync(int? limit, string? uploadedById)
     {
         var releases = await LoadAsync<ToolReleaseRecord>(_toolReleasesPath);
+        var latestByApp = releases
+            .Where(release => !string.IsNullOrWhiteSpace(release.FileUrl))
+            .GroupBy(release => release.AppName, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                group => group.Key,
+                group => group
+                    .OrderByDescending(release => release.IsLatest)
+                    .ThenByDescending(release => release.PublishedAt)
+                    .First(),
+                StringComparer.OrdinalIgnoreCase);
+
         var query = releases
             .Where(release => string.IsNullOrWhiteSpace(uploadedById) || string.Equals(release.UploadedById, uploadedById, StringComparison.OrdinalIgnoreCase))
             .OrderByDescending(release => release.IsLatest)
@@ -266,10 +278,14 @@ public class CommunityContentService : ICommunityContentService
         if (limit.HasValue && limit.Value > 0)
             query = query.Take(limit.Value);
 
-        return query.Select(MapToolRelease).ToList();
+        return query.Select(release =>
+        {
+            latestByApp.TryGetValue(release.AppName, out var latestRelease);
+            return MapToolRelease(release, latestRelease);
+        }).ToList();
     }
 
-    public async Task<ToolReleaseDto> CreateToolReleaseAsync(CreateToolReleaseDto dto, StoredFileDetails file, string currentUserId, string currentUserName)
+    public async Task<ToolReleaseCreateResult> CreateToolReleaseAsync(CreateToolReleaseDto dto, StoredFileDetails file, string currentUserId, string currentUserName)
     {
         if (!AllowedToolExtensions.Contains(file.FileExtension, StringComparer.OrdinalIgnoreCase))
             throw new InvalidOperationException("Mục Công cụ chỉ hỗ trợ file .exe, .rar hoặc .zip.");
@@ -296,11 +312,17 @@ public class CommunityContentService : ICommunityContentService
                 .ToList();
 
             var shouldMarkLatest = dto.MarkAsLatest || sameAppReleases.Count == 0;
+            var replacedFileUrls = new List<string>();
             if (shouldMarkLatest)
             {
                 foreach (var release in sameAppReleases)
                 {
                     release.IsLatest = false;
+                    if (!string.IsNullOrWhiteSpace(release.FileUrl))
+                    {
+                        replacedFileUrls.Add(release.FileUrl);
+                        release.FileUrl = string.Empty;
+                    }
                 }
             }
 
@@ -322,7 +344,7 @@ public class CommunityContentService : ICommunityContentService
 
             releases.Add(record);
             await SaveAsync(_toolReleasesPath, releases);
-            return MapToolRelease(record);
+            return new ToolReleaseCreateResult(MapToolRelease(record, record), replacedFileUrls.Distinct(StringComparer.OrdinalIgnoreCase).ToList());
         }
         finally
         {
@@ -348,7 +370,7 @@ public class CommunityContentService : ICommunityContentService
             if (release.IsLatest)
             {
                 var nextLatest = releases
-                    .Where(item => string.Equals(item.AppName, release.AppName, StringComparison.OrdinalIgnoreCase))
+                    .Where(item => string.Equals(item.AppName, release.AppName, StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(item.FileUrl))
                     .OrderByDescending(item => item.PublishedAt)
                     .FirstOrDefault();
 
@@ -446,8 +468,10 @@ public class CommunityContentService : ICommunityContentService
         };
     }
 
-    private static ToolReleaseDto MapToolRelease(ToolReleaseRecord release)
+    private static ToolReleaseDto MapToolRelease(ToolReleaseRecord release, ToolReleaseRecord? downloadRelease = null)
     {
+        downloadRelease ??= release;
+
         return new ToolReleaseDto
         {
             Id = release.Id,
@@ -458,6 +482,10 @@ public class CommunityContentService : ICommunityContentService
             FileUrl = release.FileUrl,
             FileExtension = release.FileExtension,
             FileSize = release.FileSize,
+            DownloadFileName = downloadRelease.FileName,
+            DownloadFileUrl = downloadRelease.FileUrl,
+            DownloadFileExtension = downloadRelease.FileExtension,
+            DownloadFileSize = downloadRelease.FileSize,
             UploadedById = release.UploadedById,
             UploadedByName = release.UploadedByName,
             IsLatest = release.IsLatest,

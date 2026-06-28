@@ -45,8 +45,46 @@ namespace OnlineCoursePlatform.API.Controllers
 
             if (string.IsNullOrWhiteSpace(userId)) return Unauthorized();
 
-            var course = await _courseService.CreateCourseAsync(dto, userId, userName);
-            return CreatedAtAction(nameof(GetCourse), new { id = course.Id }, course);
+            try
+            {
+                var course = await _courseService.CreateCourseAsync(dto, userId, userName);
+                return CreatedAtAction(nameof(GetCourse), new { id = course.Id }, course);
+            }
+            catch (PocketBaseRequestException ex) when ((int)ex.StatusCode >= 400 && (int)ex.StatusCode < 500)
+            {
+                return BadRequest(new { Message = ex.Message });
+            }
+            catch (PocketBaseRequestException ex)
+            {
+                return StatusCode(StatusCodes.Status502BadGateway, new { Message = ex.Message });
+            }
+        }
+
+        [Authorize(Policy = "RequireInstructor")]
+        [HttpPut("{id}")]
+        [HttpPost("{id}/update")]
+        public async Task<IActionResult> UpdateCourse(string id, CreateCourseDto dto)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
+            if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(userRole)) return Unauthorized();
+
+            try
+            {
+                var course = await _courseService.UpdateCourseAsync(id, dto, userId, userRole);
+                if (course == null) return Forbid();
+
+                return Ok(course);
+            }
+            catch (PocketBaseRequestException ex) when ((int)ex.StatusCode >= 400 && (int)ex.StatusCode < 500)
+            {
+                return BadRequest(new { Message = ex.Message });
+            }
+            catch (PocketBaseRequestException ex)
+            {
+                return StatusCode(StatusCodes.Status502BadGateway, new { Message = ex.Message });
+            }
         }
 
         [Authorize(Policy = "RequireInstructor")]
