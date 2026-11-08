@@ -1,9 +1,20 @@
 .vs/
 .deploy_tmp/
 publish_latest/
+
+# Build/Publish outputs
+Backend/.deploy_publish/
+Backend/.tmp_build/
 Backend/publish_domain/
+Backend/publish_deploy/
+Backend/publish_pb/
+Backend/backend_domain_publish.tar.gz
+Backend/backend_domain_publish.zip
+Backend/backend_publish_pb.tar.gz
+backend_publish.tar.gz
+frontend_domain_dist.tar.gz
+
 Backend/wwwroot/uploads/
 Backend/App_Data/
 Frontend/asset/backup/
 *.log
-*.tar.gz
