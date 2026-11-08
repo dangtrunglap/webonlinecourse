@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
@@ -31,8 +31,19 @@ public interface IPocketBaseClient
 {
     Task InitializeAsync();
     Task<PocketBaseAuthResult?> AuthenticateUserAsync(string email, string password);
-    Task<PocketBaseAuthResult?> RegisterUserAsync(string name, string email, string password, string role);
+    Task<PocketBaseAuthResult?> RegisterUserAsync(
+        string name,
+        string email,
+        string password,
+        string role,
+        bool consentGiven = false,
+        string consentVersion = "1.0",
+        string? consentTimestamp = null);
     Task<UserProfile?> GetUserProfileAsync(string userId);
+    Task<Dictionary<string, JsonElement>?> GetUserRecordAsync(string userId);
+    Task<IReadOnlyList<Dictionary<string, JsonElement>>> GetUserDevicesAsync(string userId);
+    Task<bool> DeleteUserDeviceAsync(string userId, string deviceId);
+    Task<bool> DeleteUserAccountAsync(string userId);
 
     Task<(IReadOnlyList<Dictionary<string, JsonElement>> Items, int TotalItems)> GetCoursesAsync(string? search, int page, int pageSize);
     Task<Dictionary<string, JsonElement>?> GetCourseByIdAsync(string id);
@@ -92,9 +103,20 @@ public class PocketBaseClient : IPocketBaseClient
         return new PocketBaseAuthResult(userId, userEmail, userName, role, token);
     }
 
-    public async Task<PocketBaseAuthResult?> RegisterUserAsync(string name, string email, string password, string role)
+    public async Task<PocketBaseAuthResult?> RegisterUserAsync(
+        string name,
+        string email,
+        string password,
+        string role,
+        bool consentGiven = false,
+        string consentVersion = "1.0",
+        string? consentTimestamp = null)
     {
         await EnsureAdminTokenAsync();
+
+        var timestamp = string.IsNullOrWhiteSpace(consentTimestamp)
+            ? DateTimeOffset.UtcNow.ToString("o")
+            : consentTimestamp;
 
         var createResponse = await SendAdminAsync(HttpMethod.Post, $"api/collections/{_options.UsersCollection}/records", new
         {
@@ -105,7 +127,10 @@ public class PocketBaseClient : IPocketBaseClient
             role = NormalizeRole(role),
             plan = "free",
             maxDevices = 1,
-            isActive = true
+            isActive = true,
+            consentGiven,
+            consentVersion,
+            consentTimestamp = timestamp
         });
 
         if (createResponse.StatusCode == HttpStatusCode.BadRequest || createResponse.StatusCode == HttpStatusCode.UnprocessableEntity)
@@ -130,6 +155,66 @@ public class PocketBaseClient : IPocketBaseClient
         var name = root.TryGetProperty("name", out var nameEl) ? nameEl.GetString() ?? "Unknown" : "Unknown";
         var role = root.TryGetProperty("role", out var roleEl) ? NormalizeRole(roleEl.GetString()) : "Student";
         return new UserProfile(userId, name, role);
+    }
+
+    public async Task<Dictionary<string, JsonElement>?> GetUserRecordAsync(string userId)
+    {
+        await EnsureAdminTokenAsync();
+        var response = await SendAdminAsync(HttpMethod.Get, $"api/collections/{_options.UsersCollection}/records/{userId}");
+        if (!response.IsSuccessStatusCode)
+            return null;
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        return ToDictionary(doc.RootElement);
+    }
+
+    public async Task<IReadOnlyList<Dictionary<string, JsonElement>>> GetUserDevicesAsync(string userId)
+    {
+        await EnsureAdminTokenAsync();
+        var filter = Uri.EscapeDataString($"user = '{EscapeFilter(userId)}'");
+        var response = await SendAdminAsync(HttpMethod.Get, $"api/collections/user_devices/records?perPage=50&sort=-lastSeenAt&filter={filter}");
+        if (!response.IsSuccessStatusCode)
+            return Array.Empty<Dictionary<string, JsonElement>>();
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        if (!doc.RootElement.TryGetProperty("items", out var itemsEl))
+            return Array.Empty<Dictionary<string, JsonElement>>();
+
+        return itemsEl.EnumerateArray().Select(ToDictionary).ToList();
+    }
+
+    public async Task<bool> DeleteUserDeviceAsync(string userId, string deviceId)
+    {
+        await EnsureAdminTokenAsync();
+        var getResponse = await SendAdminAsync(HttpMethod.Get, $"api/collections/user_devices/records/{deviceId}");
+        if (!getResponse.IsSuccessStatusCode) return false;
+
+        using var doc = JsonDocument.Parse(await getResponse.Content.ReadAsStringAsync());
+        var ownerId = doc.RootElement.TryGetProperty("user", out var uEl) ? uEl.GetString() : null;
+        if (ownerId != userId) return false;
+
+        var response = await SendAdminAsync(HttpMethod.Delete, $"api/collections/user_devices/records/{deviceId}");
+        return response.IsSuccessStatusCode;
+    }
+
+    public async Task<bool> DeleteUserAccountAsync(string userId)
+    {
+        await EnsureAdminTokenAsync();
+        var devices = await GetUserDevicesAsync(userId);
+        foreach (var device in devices)
+        {
+            if (device.TryGetValue("id", out var idEl) && idEl.ValueKind == JsonValueKind.String)
+            {
+                var devId = idEl.GetString();
+                if (!string.IsNullOrEmpty(devId))
+                {
+                    await SendAdminAsync(HttpMethod.Delete, $"api/collections/user_devices/records/{devId}");
+                }
+            }
+        }
+
+        var response = await SendAdminAsync(HttpMethod.Delete, $"api/collections/{_options.UsersCollection}/records/{userId}");
+        return response.IsSuccessStatusCode;
     }
 
     public async Task<(IReadOnlyList<Dictionary<string, JsonElement>> Items, int TotalItems)> GetCoursesAsync(string? search, int page, int pageSize)
@@ -258,35 +343,54 @@ public class PocketBaseClient : IPocketBaseClient
         await EnsureAdminTokenAsync();
 
         var courseId = GetString(course, "id");
-        var amount = GetDecimal(course, "price");
-        var courseTitle = GetString(course, "title");
+        var price = GetDecimal(course, "price");
+        var now = DateTime.UtcNow;
+
+        var filter = Uri.EscapeDataString($"user = '{EscapeFilter(userId)}'");
+        var checkResp = await SendAdminAsync(HttpMethod.Get, $"api/collections/{_options.EntitlementsCollection}/records?perPage=200&filter={filter}");
+        checkResp.EnsureSuccessStatusCode();
+
+        using (var doc = JsonDocument.Parse(await checkResp.Content.ReadAsStringAsync()))
+        {
+            foreach (var item in doc.RootElement.GetProperty("items").EnumerateArray())
+            {
+                var active = item.TryGetProperty("active", out var aEl) && aEl.ValueKind == JsonValueKind.True;
+                var cEl = item.TryGetProperty("course", out var cVal) ? cVal : default;
+                var currentCourseId = string.Empty;
+                if (cEl.ValueKind == JsonValueKind.String) currentCourseId = cEl.GetString() ?? string.Empty;
+                else if (cEl.ValueKind == JsonValueKind.Array && cEl.GetArrayLength() > 0) currentCourseId = cEl[0].GetString() ?? string.Empty;
+
+                if (active && string.Equals(currentCourseId, courseId, StringComparison.Ordinal))
+                {
+                    var date = item.TryGetProperty("created", out var createdEl) && createdEl.ValueKind == JsonValueKind.String
+                        ? DateTime.Parse(createdEl.GetString()!)
+                        : now;
+                    return new EntitlementResult(false, date);
+                }
+            }
+        }
 
         var orderResponse = await SendAdminAsync(HttpMethod.Post, $"api/collections/{_options.TransactionsCollection}/records", new
         {
             user = userId,
-            items = courseId,
-            status = "paid",
-            amount,
-            note = $"Auto payment for {courseTitle}",
+            course = courseId,
+            amount = price,
+            currency = "VND",
+            paymentMethod = "ManualTransfer",
             paymentRef,
-            approvedBy = userName,
-            granted = true
+            status = "completed",
+            note = $"Kích hoạt khóa học cho {userName}"
         });
 
         orderResponse.EnsureSuccessStatusCode();
-        using var orderDoc = JsonDocument.Parse(await orderResponse.Content.ReadAsStringAsync());
-        var orderId = orderDoc.RootElement.GetProperty("id").GetString() ?? string.Empty;
 
-        if (await HasActiveEntitlementAsync(userId, courseId))
-            return new EntitlementResult(false, DateTime.UtcNow);
-
-        var now = DateTime.UtcNow;
         var entitlementResponse = await SendAdminAsync(HttpMethod.Post, $"api/collections/{_options.EntitlementsCollection}/records", new
         {
             user = userId,
             course = courseId,
             active = true,
-            sourceOrder = string.IsNullOrWhiteSpace(orderId) ? null : orderId
+            licenseType = "Standard",
+            grantMethod = "ManualConfirmation"
         });
 
         entitlementResponse.EnsureSuccessStatusCode();

@@ -29,6 +29,7 @@ export const Navbar: React.FC = () => {
           <Link to="/tools" className="nav-link">Công cụ</Link>
           <Link to="/about" className="nav-link">Giới thiệu</Link>
           <Link to="/contact" className="nav-link">Liên hệ</Link>
+          <Link to="/policies" className="nav-link" title="Chính sách bảo vệ dữ liệu NĐ 13/2023">Chính sách</Link>
           {isAuthenticated && user?.role === 'Student' && <Link to="/my-courses" className="nav-link">Khóa của tôi</Link>}
           {isAuthenticated && (user?.role === 'Instructor' || user?.role === 'Admin') && (
             <Link to="/admin/courses" className="nav-link">Bảng điều khiển</Link>
@@ -43,15 +44,20 @@ export const Navbar: React.FC = () => {
             </>
           ) : (
             <>
-              <span className="nav-link" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-                <User size={16} /> {user?.name}
-              </span>
+              <Link
+                to="/account"
+                className="btn btn-secondary"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.75rem' }}
+                title="Quản lý Tài khoản & Quyền dữ liệu (NĐ 13/2023)"
+              >
+                <User size={16} /> {user?.name || 'Tài khoản'}
+              </Link>
               {(user?.role === 'Instructor' || user?.role === 'Admin') && (
-                <Link to="/admin/courses" className="btn btn-secondary">
+                <Link to="/admin/courses" className="btn btn-secondary" style={{ padding: '0.45rem 0.75rem' }}>
                   <LayoutDashboard size={16} /> Quản lý
                 </Link>
               )}
-              <button type="button" onClick={handleLogout} className="btn btn-secondary">
+              <button type="button" onClick={handleLogout} className="btn btn-secondary" style={{ padding: '0.45rem 0.75rem' }}>
                 <LogOut size={16} /> Đăng xuất
               </button>
             </>

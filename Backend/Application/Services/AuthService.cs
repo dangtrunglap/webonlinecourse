@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using OnlineCoursePlatform.API.Application.DTOs.Auth;
 using System.IdentityModel.Tokens.Jwt;
@@ -28,7 +28,15 @@ public class AuthService : IAuthService
     {
         await _pocketBase.InitializeAsync();
 
-        var auth = await _pocketBase.RegisterUserAsync(dto.Name, dto.Email, dto.Password, dto.Role);
+        var auth = await _pocketBase.RegisterUserAsync(
+            dto.Name,
+            dto.Email,
+            dto.Password,
+            dto.Role,
+            dto.ConsentGiven,
+            string.IsNullOrWhiteSpace(dto.ConsentVersion) ? "1.0" : dto.ConsentVersion,
+            dto.ConsentTimestamp);
+
         if (auth == null)
             return null;
 

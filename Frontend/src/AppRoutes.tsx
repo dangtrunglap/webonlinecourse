@@ -15,6 +15,7 @@ import { AboutPage } from './pages/AboutPage';
 import { ContactPage } from './pages/ContactPage';
 import { FaqPage } from './pages/FaqPage';
 import { PoliciesPage } from './pages/PoliciesPage';
+import { AccountSettings } from './pages/AccountSettings';
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -32,6 +33,7 @@ export const AppRoutes: React.FC = () => {
         <Route path="faq" element={<FaqPage />} />
         <Route path="policies" element={<PoliciesPage />} />
         <Route path="my-courses" element={<ProtectedRoute><MyCourses /></ProtectedRoute>} />
+        <Route path="account" element={<ProtectedRoute><AccountSettings /></ProtectedRoute>} />
         <Route path="admin/courses" element={<ProtectedRoute allowedRoles={['Instructor', 'Admin']}><Dashboard /></ProtectedRoute>} />
       </Route>
     </Routes>

@@ -116,7 +116,7 @@ export const ToolLibrary: React.FC = () => {
                       <p className="muted">Version {latestRelease.version} • Cập nhật {formatReleaseDate(latestRelease.publishedAt)}</p>
                     </div>
                   </div>
-                  <a href={getMediaUrl(latestRelease.downloadFileUrl ?? latestRelease.fileUrl) ?? '#'} target="_blank" rel="noreferrer" className="btn btn-primary">
+                  <a href={getMediaUrl(latestRelease.downloadFileUrl || latestRelease.fileUrl) ?? '#'} target="_blank" rel="noreferrer" className="btn btn-primary">
                     <Download size={16} /> Tải bản mới nhất
                   </a>
                 </div>

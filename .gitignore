@@ -1,4 +1,6 @@
+.vs/
 .deploy_tmp/
+publish_latest/
 Backend/publish_domain/
 Backend/wwwroot/uploads/
 Backend/App_Data/
